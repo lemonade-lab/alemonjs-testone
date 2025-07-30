@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import MessageBubble from './MessageBubble';
+import MessageBubble from '@/frontend/component/MessageBubble';
 import { type DataEnums } from 'alemonjs';
 
 export default function MessageWondow({

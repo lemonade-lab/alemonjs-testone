@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { Buffer } from 'buffer';
-import { Button } from '@/gui/ui/Button';
+import { Button } from '@/frontend/ui/Button';
 import { type DataEnums } from 'alemonjs';
 /**
  *

@@ -1,6 +1,6 @@
-import MessageWondow from '../component/MessageWindow';
-import Textarea from '../component/Textarea';
-import MessageHeader from '../component/MessageHeader';
+import MessageWondow from '@/frontend/component/MessageWindow';
+import Textarea from '@/frontend/component/Textarea';
+import MessageHeader from '@/frontend/component/MessageHeader';
 import { User, DataEnums } from 'alemonjs';
 export default function PrivateApp({
   value,

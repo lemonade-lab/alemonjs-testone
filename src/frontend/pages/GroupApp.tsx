@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Channel } from '../typing';
-import MessageWondow from '../component/MessageWindow';
-import Textarea from '../component/Textarea';
-import MessageHeader from '../component/MessageHeader';
+import { Channel } from '@/frontend/typing';
+import MessageWondow from '@/frontend/component/MessageWindow';
+import Textarea from '@/frontend/component/Textarea';
+import MessageHeader from '@/frontend/component/MessageHeader';
 import { User, type DataEnums } from 'alemonjs';
 
 export default function GroupApp({

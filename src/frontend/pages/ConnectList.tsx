@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Connect } from '../typing';
-import { Button } from '@/gui/ui/Button';
-import { Input } from '@/gui/ui/Input';
-import { saveConnect } from '../core/connect';
+import { Connect } from '@/frontend/typing';
+import { Button } from '@/frontend/ui/Button';
+import { Input } from '@/frontend/ui/Input';
+import { saveConnect } from '@/frontend/core/connect';
 
 const defaultForm: Connect = {
   host: '',

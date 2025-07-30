@@ -1,4 +1,4 @@
-import { Connect } from '../typing';
+import { Connect } from '@/frontend/typing';
 export const LOCAL_STORAGE_KEY = 'ALemonTestOne:ConnectList';
 export const PATH_CONNECT_CODE = 1001;
 export const PATH_CONNECT_LIST = 'data/connect.json';

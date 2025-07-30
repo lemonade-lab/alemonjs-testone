@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { initChannel, initConfig } from '../core';
-import GroupApp from './GroupApp';
-import PrivateApp from './PrivateApp';
-import { Channel, Connect } from '../typing';
+import GroupApp from '@/frontend/pages/GroupApp';
+import PrivateApp from '@/frontend/pages/PrivateApp';
+import { Channel, Connect } from '@/frontend/typing';
 import { isArray } from 'lodash-es';
-import ConnectList from './ConnectList';
-import { getConnectList } from '../core/connect';
-import { Message } from '../core/message';
+import ConnectList from '@/frontend/pages/ConnectList';
+import { getConnectList } from '@/frontend/core/connect';
+import { Message } from '@/frontend/core/message';
 import { DataEnums, User } from 'alemonjs';
 
 type PageTag = 'connect' | 'group' | 'private';
