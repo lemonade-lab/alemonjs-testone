@@ -1,14 +1,4 @@
-export type Config = {
-  // bot
-  BotId: string;
-  BotName: string;
-  BotAvatar: string;
-  // guild
-  GuildId: string;
-  ChannelId: string;
-  ChannelName: string;
-  ChannelAvatar: string;
-};
+import { DataEnums } from 'alemonjs';
 
 export type Channel = {
   GuildId: string;
@@ -21,4 +11,23 @@ export type Connect = {
   host: string;
   port: number;
   name: string;
+};
+
+export type User = {
+  UserId: string;
+  UserName: string;
+  UserAvatar: string;
+  OpenId?: string; // 可选属性
+  IsBot: boolean;
+};
+
+export type PageTag = 'connect' | 'group' | 'private';
+
+export type MessageItem = {
+  IsBot: boolean;
+  UserId: string;
+  UserName: string;
+  UserAvatar: string;
+  createAt: number;
+  data: DataEnums[];
 };

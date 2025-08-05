@@ -1,20 +1,27 @@
+import { Channel, MessageItem, User } from '@/frontend/typing';
 import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
-import { User, DataEnums } from 'alemonjs';
+
 export default function PrivateApp({
   value,
   onInput,
   message,
   onSend,
   onDelete,
+  channels,
+  users,
+  user,
   bot
 }: {
   value: string;
   onInput: (val: string) => void;
-  message: DataEnums[];
+  message: MessageItem[];
   onSend: (message: string) => void;
-  onDelete: (message: DataEnums) => void;
+  onDelete: (message: MessageItem) => void;
+  channels: Channel[];
+  users: User[];
+  user: User;
   bot: User;
 }) {
   return (

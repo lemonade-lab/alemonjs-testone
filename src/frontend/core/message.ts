@@ -1,3 +1,4 @@
+//
 export const Message = {
   info: (message: string) => {
     if (!window.vscode) {

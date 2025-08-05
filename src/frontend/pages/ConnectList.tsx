@@ -61,12 +61,14 @@ const ConnectList = ({
   value,
   onOk,
   onAdd,
-  onDel
+  onDel,
+  connecting
 }: {
   value: Connect[];
   onOk?: (data: Connect) => void;
   onAdd?: (data: Connect) => void;
   onDel?: (data: Connect) => void;
+  connecting?: boolean;
 }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState<Connect>(defaultForm);
@@ -91,81 +93,91 @@ const ConnectList = ({
   };
   return (
     <div className="w-full h-full flex flex-col items-center justify-center">
-      <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">
-        {value.map((item, idx) => (
-          <ConnectItem
-            key={idx}
-            onClick={() => {
-              // 点击连接
-              onOk?.(item);
-              // 把连接的。排序。放到最前面
-              const newList = value.filter(
-                connect => connect.name !== item.name
-              );
-              saveConnect([item, ...newList], '');
-            }}
-            item={item}
-            onDelete={() => {
-              onDel?.(item);
-              const newList = value.filter(
-                connect => connect.name !== item.name
-              );
-              console.log('newList', newList);
-              saveConnect(newList, '删除成功');
-            }}
-          />
-        ))}
-        {!showAdd ? (
-          <ConnectItem onClick={() => setShowAdd(true)}>
-            + 添加新连接
-          </ConnectItem>
-        ) : (
-          <form
-            className="w-full flex flex-col gap-2 bg-[var(--vscode-editor-background)] rounded-lg p-4 shadow"
-            onSubmit={onSubmit}
-            style={{ minWidth: 320 }}
-          >
-            <Input
-              type="text"
-              name="name"
-              placeholder="备注"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              required
+      {connecting ? (
+        <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">
+          <span>正在连接...</span>
+        </div>
+      ) : (
+        <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">
+          {value.map((item, idx) => (
+            <ConnectItem
+              key={idx}
+              onClick={() => {
+                // 点击连接
+                onOk?.(item);
+                // 把连接的。排序。放到最前面
+                const newList = value.filter(
+                  connect => connect.name !== item.name
+                );
+                saveConnect([item, ...newList], '');
+              }}
+              item={item}
+              onDelete={() => {
+                onDel?.(item);
+                const newList = value.filter(
+                  connect => connect.name !== item.name
+                );
+                console.log('newList', newList);
+                saveConnect(newList, '删除成功');
+              }}
             />
-            <Input
-              type="text"
-              name="host"
-              placeholder="地址"
-              value={formData.host}
-              onChange={e => setFormData({ ...formData, host: e.target.value })}
-              required
-            />
-            <Input
-              type="number"
-              name="port"
-              placeholder="端口"
-              value={formData.port}
-              onChange={e =>
-                setFormData({ ...formData, port: Number(e.target.value) })
-              }
-              required
-            />
-            <div className="flex flex-row gap-4 justify-end">
-              <Button
-                className="flex-1"
-                type="button"
-                onClick={() => setShowAdd(false)}
-              >
-                取消
-              </Button>
-              <Button className="flex-1" type="submit">
-                保存
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
+          ))}
+          {!showAdd ? (
+            <ConnectItem onClick={() => setShowAdd(true)}>
+              + 添加新连接
+            </ConnectItem>
+          ) : (
+            <form
+              className="w-full flex flex-col gap-2 bg-[var(--vscode-editor-background)] rounded-lg p-4 shadow"
+              onSubmit={onSubmit}
+              style={{ minWidth: 320 }}
+            >
+              <Input
+                type="text"
+                name="name"
+                placeholder="备注"
+                value={formData.name}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+              />
+              <Input
+                type="text"
+                name="host"
+                placeholder="地址"
+                value={formData.host}
+                onChange={e =>
+                  setFormData({ ...formData, host: e.target.value })
+                }
+                required
+              />
+              <Input
+                type="number"
+                name="port"
+                placeholder="端口"
+                value={formData.port}
+                onChange={e =>
+                  setFormData({ ...formData, port: Number(e.target.value) })
+                }
+                required
+              />
+              <div className="flex flex-row gap-4 justify-end">
+                <Button
+                  className="flex-1"
+                  type="button"
+                  onClick={() => setShowAdd(false)}
+                >
+                  取消
+                </Button>
+                <Button className="flex-1" type="submit">
+                  保存
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
     </div>
   );
 };

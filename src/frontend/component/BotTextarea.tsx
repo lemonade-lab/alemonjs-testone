@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SendIcon } from '../ui/Icons';
 import { parseHtmlContent } from '../core';
-import { User } from 'alemonjs';
+import { User } from '../typing';
 
 interface TextareaProps extends React.HTMLAttributes<HTMLDivElement> {
   value: string;

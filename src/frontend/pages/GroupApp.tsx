@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Channel } from '@/frontend/typing';
+import { Channel, MessageItem, User } from '@/frontend/typing';
 import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
-import { User, type DataEnums } from 'alemonjs';
 
 export default function GroupApp({
   value,
@@ -12,15 +11,19 @@ export default function GroupApp({
   message,
   onDelete,
   channels,
-  users
+  users,
+  user,
+  bot
 }: {
   value: string;
   onInput: (val: string) => void;
-  message: DataEnums[];
+  message: MessageItem[];
   onSend: (message: string) => void;
-  onDelete: (item: DataEnums) => void;
+  onDelete: (item: MessageItem) => void;
   channels: Channel[];
   users: User[];
+  user: User;
+  bot: User;
 }) {
   const [channel, setChannel] = useState<Channel>(channels[0]);
   return (
@@ -73,7 +76,6 @@ export default function GroupApp({
             UserId: 'everyone',
             UserName: '全体成员',
             UserAvatar: '',
-            OpenId: 'everyone',
             IsBot: false
           },
           ...users

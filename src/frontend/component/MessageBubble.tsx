@@ -8,12 +8,12 @@ import { type DataEnums } from 'alemonjs';
  * @returns
  */
 export default function MessageBubble({
-  messageBody,
+  data,
   createAt,
   onSend = () => {},
   onInput = () => {}
 }: {
-  messageBody: DataEnums[];
+  data: DataEnums[];
   createAt: number;
   onSend: (value: string) => void;
   onInput: (value: string) => void;
@@ -23,7 +23,7 @@ export default function MessageBubble({
       {
         // 消息是一个body。需要按格式解析
       }
-      {messageBody.map((item, index) => {
+      {data.map((item, index) => {
         if (item.type == 'MD.template') {
           return <div key={index}>暂时不支持</div>;
         } else if (item.type === 'Ark.BigCard') {

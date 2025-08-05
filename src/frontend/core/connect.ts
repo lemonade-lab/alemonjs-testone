@@ -2,6 +2,10 @@ import { Connect } from '@/frontend/typing';
 export const LOCAL_STORAGE_KEY = 'ALemonTestOne:ConnectList';
 export const PATH_CONNECT_CODE = 1001;
 export const PATH_CONNECT_LIST = 'data/connect.json';
+/**
+ *
+ * @returns
+ */
 export const getConnectList = (): Connect[] | null => {
   if (!window.vscode) {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -17,6 +21,12 @@ export const getConnectList = (): Connect[] | null => {
   });
   return null;
 };
+/**
+ *
+ * @param data
+ * @param message
+ * @returns
+ */
 export const saveConnect = (data: Connect[], message?: string) => {
   if (!window.vscode) {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SendIcon } from '@/frontend/ui/Icons';
-import { User } from 'alemonjs';
+import { User } from '../typing';
 
 interface TextareaProps extends React.HTMLAttributes<HTMLTextAreaElement> {
   value: string;

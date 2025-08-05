@@ -65,6 +65,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.6",
     "eslint-plugin-stylelint": "^0.1.1",
+    "flatted": "^3.3.3",
     "globals": "^15.12.0",
     "immer": "^10.1.1",
     "lodash-es": "^4.17.21",

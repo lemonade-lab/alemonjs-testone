@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import MessageBubble from '@/frontend/component/MessageBubble';
-import { type DataEnums } from 'alemonjs';
+import { MessageItem } from '../typing';
 
 export default function MessageWondow({
   message,
@@ -8,8 +8,8 @@ export default function MessageWondow({
   onSend = () => {},
   onInput = () => {}
 }: {
-  message: DataEnums[];
-  onDelete: (item: DataEnums) => void;
+  message: MessageItem[];
+  onDelete: (item: MessageItem) => void;
   onSend: (value: string) => void;
   onInput: (value: string) => void;
 }) {
@@ -52,7 +52,7 @@ export default function MessageWondow({
               // 气泡框
             }
             <MessageBubble
-              messageBody={item.MessageBody}
+              data={item.data}
               onSend={onSend}
               onInput={onInput}
               createAt={item.createAt}
