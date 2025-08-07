@@ -2,6 +2,9 @@ import dayjs from 'dayjs';
 import { Buffer } from 'buffer';
 import { Button } from '@/frontend/ui/Button';
 import { type DataEnums } from 'alemonjs';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
+import './MessageBubble.scss';
 /**
  *
  * @param param0
@@ -42,22 +45,24 @@ export default function MessageBubble({
           // 转为本地地址
           const url = URL.createObjectURL(blob);
           return (
-            <img
-              key={index}
-              className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-              src={url}
-              alt="Image"
-            />
+            <Zoom key={index} classDialog="my-transparent-dialog">
+              <img
+                className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+                src={url}
+                alt="Image"
+              />
+            </Zoom>
           );
         } else if (item.type == 'ImageURL') {
           const url = item.value;
           return (
-            <img
-              key={index}
-              className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-              src={url}
-              alt="ImageURL"
-            />
+            <Zoom key={index} classDialog="my-transparent-dialog">
+              <img
+                className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+                src={url}
+                alt="ImageURL"
+              />
+            </Zoom>
           );
         } else if (item.type == 'Text') {
           // 换行
@@ -222,13 +227,15 @@ export default function MessageBubble({
                   const w = item.options?.width || '100';
                   const h = item.options?.height || '100';
                   return (
-                    <img
-                      key={index}
-                      style={{ width: `${w}px`, height: `${h}px` }}
-                      className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-                      src={item.value}
-                      alt="Image"
-                    />
+                    <Zoom key={index} classDialog="my-transparent-dialog">
+                      <img
+                        key={index}
+                        style={{ width: `${w}px`, height: `${h}px` }}
+                        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+                        src={item.value}
+                        alt="Image"
+                      />
+                    </Zoom>
                   );
                 } else if (item.type === 'MD.italic') {
                   return <em key={index}>{item.value}</em>;

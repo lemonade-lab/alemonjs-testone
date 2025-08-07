@@ -54,6 +54,10 @@ export default function App() {
   const [value, setValue] = useState('');
   // 机器人配置
   const [bot, setBot] = useState<User>(initBot);
+  const botRef = useRef(bot);
+  useEffect(() => {
+    botRef.current = bot;
+  }, [bot]);
   // 你自己
   const [user, setUser] = useState<User>(initUser);
   // 私聊消息
@@ -140,6 +144,98 @@ export default function App() {
     };
   }, []);
 
+  const initData = (data: {
+    type: string;
+    payload: {
+      commands?: any[];
+      users: User[];
+      channels: Channel[];
+      bot?: User;
+      user?: User;
+      privateMessage: MessageItem[];
+      publicMessage: MessageItem[];
+    };
+  }) => {
+    const {
+      commands,
+      users,
+      channels,
+      user,
+      bot,
+      privateMessage,
+      publicMessage
+    } = data.payload;
+    if (users.length > 0) {
+      setUsers(users);
+    } else {
+      setUsers([initUser]);
+    }
+    if (channels.length > 0) {
+      setChannels(channels);
+      setChannel(channels[0]);
+    } else {
+      setChannels([initChannel]);
+      setChannel(initChannel);
+    }
+    if (user) {
+      setUser(user);
+    } else {
+      setUser(initUser);
+    }
+    if (bot) {
+      setBot(bot);
+    } else {
+      setBot(initBot);
+    }
+    if (commands && isArray(commands)) {
+      setCommands(commands);
+    }
+    setPrivateMessages(privateMessage);
+    setGroupMessages(publicMessage);
+  };
+
+  const action = (data: { action: string; payload: any }) => {
+    if (data.action === 'message.send') {
+      const event = data.payload.event;
+      const message: MessageItem = {
+        // 如果判断是群聊还是私聊？
+        UserId: botRef.current.UserId,
+        UserName: botRef.current.UserName,
+        UserAvatar: botRef.current.UserAvatar,
+        CreateAt: Date.now(),
+        data: data.payload.params.format
+      };
+      console.log('message', message);
+      if (/private/.test(event.name)) {
+        // 私聊事件
+        setPrivateMessages(prev => [...prev, message]);
+        // 还要发送到服务端
+        window.websocket?.send(
+          flattedJSON.stringify({
+            type: 'private.message.save',
+            payload: message
+          })
+        );
+      } else {
+        // 群聊事件
+        setGroupMessages(prev => [...prev, message]);
+        // 还要发送到服务端
+        window.websocket?.send(
+          flattedJSON.stringify({
+            type: 'public.message.save',
+            payload: message
+          })
+        );
+      }
+    } else if (data.action === 'mention.get') {
+      // 获取消息里的提及
+      const event = data.payload.event;
+      //
+    } else if (data.action === 'message.delete') {
+      // 删除指定的消息
+    }
+  };
+
   /**
    *
    * @param data
@@ -165,83 +261,6 @@ export default function App() {
       );
     };
 
-    const initData = (data: {
-      type: string;
-      payload: {
-        commands?: any[];
-        users: User[];
-        channels: Channel[];
-        bot?: User;
-        user?: User;
-        privateMessage: MessageItem[];
-        publicMessage: MessageItem[];
-      };
-    }) => {
-      const {
-        commands,
-        users,
-        channels,
-        user,
-        bot,
-        privateMessage,
-        publicMessage
-      } = data.payload;
-      setUsers(users);
-      setChannels(channels);
-      setPrivateMessages(privateMessage);
-      setGroupMessages(publicMessage);
-      if (commands && isArray(commands)) {
-        setCommands(commands);
-      }
-      if (bot) {
-        setBot(bot);
-      }
-      if (user) {
-        setUser(user);
-      }
-    };
-
-    const action = (data: { action: string; payload: any }) => {
-      if (data.action === 'message.send') {
-        const event = data.payload.event;
-        const message: MessageItem = {
-          // 如果判断是群聊还是私聊？
-          UserId: bot.UserId,
-          UserName: bot.UserName,
-          UserAvatar: bot.UserAvatar,
-          CreateAt: Date.now(),
-          data: data.payload.params.format
-        };
-        if (/private/.test(event.name)) {
-          // 私聊事件
-          setPrivateMessages(prev => [...prev, message]);
-          // 还要发送到服务端
-          window.websocket?.send(
-            flattedJSON.stringify({
-              type: 'private.message.save',
-              payload: message
-            })
-          );
-        } else {
-          // 群聊事件
-          setGroupMessages(prev => [...prev, message]);
-          // 还要发送到服务端
-          window.websocket?.send(
-            flattedJSON.stringify({
-              type: 'public.message.save',
-              payload: message
-            })
-          );
-        }
-      } else if (data.action === 'mention.get') {
-        // 获取消息里的提及
-        const event = data.payload.event;
-        //
-      } else if (data.action === 'message.delete') {
-        // 删除指定的消息
-      }
-    };
-
     /**
      * 监听消息
      * @param event
@@ -265,6 +284,17 @@ export default function App() {
         }
       } else if (data.type === 'commands') {
         setCommands(data.payload);
+      } else if (data.type === 'bot') {
+        // 机器人信息
+        if (data.payload) {
+          console.log('bot', data.payload);
+          setBot(data.payload);
+        }
+      } else if (data.type === 'user') {
+        // 当前用户信息
+        if (data.payload) {
+          setUser(data.payload);
+        }
       } else if (data.apiId) {
         // api 调用
       } else if (data.action) {
