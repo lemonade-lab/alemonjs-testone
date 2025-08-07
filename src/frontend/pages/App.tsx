@@ -49,7 +49,7 @@ export default function App() {
   const [channels, setChannels] = useState<Channel[]>([initChannel]);
   const [channel, setChannel] = useState<Channel>(channels[0]);
   // 指令列表
-  const [commands, setCommands] = useState<DataEnums[]>([]);
+  const [commands, setCommands] = useState<any[]>([]);
   // 输入框内容
   const [value, setValue] = useState('');
   // 机器人配置
@@ -157,7 +157,6 @@ export default function App() {
         } else {
           setTag('private');
         }
-        return;
       }
       window.websocket?.send(
         flattedJSON.stringify({
@@ -169,20 +168,31 @@ export default function App() {
     const initData = (data: {
       type: string;
       payload: {
+        commands?: any[];
         users: User[];
         channels: Channel[];
         bot?: User;
         user?: User;
-        privateMessages: MessageItem[];
-        groupMessages: MessageItem[];
+        privateMessage: MessageItem[];
+        publicMessage: MessageItem[];
       };
     }) => {
-      const { users, channels, bot, user } = data.payload;
-      const { privateMessages, groupMessages } = data.payload;
+      const {
+        commands,
+        users,
+        channels,
+        user,
+        bot,
+        privateMessage,
+        publicMessage
+      } = data.payload;
       setUsers(users);
       setChannels(channels);
-      setPrivateMessages(privateMessages);
-      setGroupMessages(groupMessages);
+      setPrivateMessages(privateMessage);
+      setGroupMessages(publicMessage);
+      if (commands && isArray(commands)) {
+        setCommands(commands);
+      }
       if (bot) {
         setBot(bot);
       }
@@ -196,19 +206,32 @@ export default function App() {
         const event = data.payload.event;
         const message: MessageItem = {
           // 如果判断是群聊还是私聊？
-          IsBot: true,
           UserId: bot.UserId,
           UserName: bot.UserName,
           UserAvatar: bot.UserAvatar,
-          createAt: Date.now(),
+          CreateAt: Date.now(),
           data: data.payload.params.format
         };
         if (/private/.test(event.name)) {
           // 私聊事件
           setPrivateMessages(prev => [...prev, message]);
+          // 还要发送到服务端
+          window.websocket?.send(
+            flattedJSON.stringify({
+              type: 'private.message.save',
+              payload: message
+            })
+          );
         } else {
           // 群聊事件
           setGroupMessages(prev => [...prev, message]);
+          // 还要发送到服务端
+          window.websocket?.send(
+            flattedJSON.stringify({
+              type: 'public.message.save',
+              payload: message
+            })
+          );
         }
       } else if (data.action === 'mention.get') {
         // 获取消息里的提及
@@ -242,10 +265,6 @@ export default function App() {
         }
       } else if (data.type === 'commands') {
         setCommands(data.payload);
-      } else if (data.type === 'private.message') {
-        setPrivateMessages(prev => [...prev, data.payload]);
-      } else if (data.type === 'group.message') {
-        setGroupMessages(prev => [...prev, data.payload]);
       } else if (data.apiId) {
         // api 调用
       } else if (data.action) {
@@ -302,30 +321,33 @@ export default function App() {
         OpenId: user.OpenId,
         UserName: user.UserName,
         UserKey: UserKey,
-        IsBot: false,
         IsMaster: false,
         UserAvatar: user.UserAvatar,
         Platform: Platform,
         MessageText: message,
         CreateAt: Date.now()
       } as PublicEventMessageCreate;
-      setGroupMessages(prev => [
-        ...prev,
-        {
-          IsBot: false,
-          UserId: data?.UserId || '',
-          UserName: data?.UserName || '',
-          UserAvatar: data?.UserAvatar || '',
-          createAt: data?.CreateAt,
-          data: [
-            {
-              type: 'Text',
-              value: message
-            }
-          ]
-        }
-      ]);
+      const messageItem: MessageItem = {
+        UserId: data?.UserId || '',
+        UserName: data?.UserName || '',
+        UserAvatar: data?.UserAvatar || '',
+        CreateAt: data?.CreateAt || Date.now(),
+        data: [
+          {
+            type: 'Text',
+            value: message
+          }
+        ]
+      };
+      setGroupMessages(prev => [...prev, messageItem]);
       window.websocket.send(flattedJSON.stringify(data));
+      // 还要发送到服务端
+      window.websocket.send(
+        flattedJSON.stringify({
+          type: 'public.message.save',
+          payload: messageItem
+        })
+      );
     }
   };
 
@@ -342,36 +364,72 @@ export default function App() {
         OpenId: user.OpenId,
         UserName: user.UserName,
         UserAvatar: user.UserAvatar,
-        IsBot: false,
         IsMaster: false,
         Platform: Platform,
         CreateAt: Date.now(),
         MessageText: message
       } as PrivateEventMessageCreate;
       // 增加消息
-      setPrivateMessages(prev => [
-        ...prev,
-        {
-          IsBot: false,
-          UserId: data?.UserId || '',
-          UserName: data?.UserName || '',
-          UserAvatar: data?.UserAvatar || '',
-          createAt: data?.CreateAt || Date.now(),
-          data: [
-            {
-              type: 'Text',
-              value: message
-            }
-          ]
+      const messageItem: MessageItem = {
+        UserId: data?.UserId || '',
+        UserName: data?.UserName || '',
+        UserAvatar: data?.UserAvatar || '',
+        CreateAt: data?.CreateAt || Date.now(),
+        data: [
+          {
+            type: 'Text',
+            value: message
+          }
+        ]
+      };
+      setPrivateMessages(prev => [...prev, messageItem]);
+      // 发送消息
+      window.websocket.send(flattedJSON.stringify(data));
+      // 还要发送到服务端
+      window.websocket.send(
+        flattedJSON.stringify({
+          type: 'private.message.save',
+          payload: messageItem
+        })
+      );
+    }
+  };
+
+  const onDeletePrivate = (item: MessageItem) => {
+    // 删除私聊消息
+    setPrivateMessages(prev =>
+      prev.filter(
+        i => !(i.CreateAt === item.CreateAt && i.UserId === item.UserId)
+      )
+    );
+    // 还要告诉服务端删除
+    if (window.websocket && window.websocket.readyState === WebSocket.OPEN) {
+      const data = {
+        type: 'private.message.delete',
+        payload: {
+          CreateAt: item.CreateAt
         }
-      ]);
+      };
       window.websocket.send(flattedJSON.stringify(data));
     }
   };
 
-  const onDelete = () => {
-    if (window.websocket && window?.websocket?.readyState === WebSocket.OPEN) {
-      //
+  const onDeleteGroup = (item: MessageItem) => {
+    // 删除群聊消息
+    setGroupMessages(prev =>
+      prev.filter(
+        i => !(i.CreateAt === item.CreateAt && i.UserId === item.UserId)
+      )
+    );
+    // 还要告诉服务端删除
+    if (window.websocket && window.websocket.readyState === WebSocket.OPEN) {
+      const data = {
+        type: 'public.message.delete',
+        payload: {
+          CreateAt: item.CreateAt
+        }
+      };
+      window.websocket.send(flattedJSON.stringify(data));
     }
   };
 
@@ -394,19 +452,6 @@ export default function App() {
         }}
       />
     ),
-    private: (
-      <PrivateApp
-        value={value}
-        onInput={setValue}
-        message={privateMessages}
-        channels={channels}
-        users={users}
-        user={user}
-        bot={bot}
-        onSend={onSendPrivate}
-        onDelete={onDelete}
-      />
-    ),
     group: (
       <GroupApp
         value={value}
@@ -416,10 +461,20 @@ export default function App() {
         channel={channel}
         onSelect={setChannel}
         users={users}
-        user={user}
-        bot={bot}
         onSend={onSendPublic}
-        onDelete={onDelete}
+        onDelete={onDeleteGroup}
+        user={user}
+      />
+    ),
+    private: (
+      <PrivateApp
+        value={value}
+        onInput={setValue}
+        message={privateMessages}
+        bot={bot}
+        onSend={onSendPrivate}
+        onDelete={onDeletePrivate}
+        user={user}
       />
     )
   };

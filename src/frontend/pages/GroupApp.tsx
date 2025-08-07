@@ -3,6 +3,38 @@ import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
 
+const ChannelSelect = ({
+  channels,
+  onSelect
+}: {
+  channels: Channel[];
+  onSelect: (channel: Channel) => void;
+}) => {
+  return (
+    <div className="px-4  flex flex-row items-center  ">
+      <select
+        onChange={e => {
+          const selectedChannel = channels.find(
+            item => item.ChannelId === e.target.value
+          );
+          if (selectedChannel) {
+            onSelect(selectedChannel);
+          }
+        }}
+        className="px-2 py-1 rounded-md bg-[var(--vscode-input-background)] hover:bg-[var(--vscode-activityBar-background)] text-[var(--vscode-input-foreground)]"
+      >
+        {channels.map((item, index) => {
+          return (
+            <option key={index} value={item.ChannelId}>
+              {item.ChannelId}
+            </option>
+          );
+        })}
+      </select>
+    </div>
+  );
+};
+
 export default function GroupApp({
   value,
   onInput,
@@ -12,9 +44,8 @@ export default function GroupApp({
   onSelect,
   channels,
   channel,
-  users,
   user,
-  bot
+  users
 }: {
   value: string;
   onInput: (val: string) => void;
@@ -24,9 +55,8 @@ export default function GroupApp({
   onSelect: (channel: Channel) => void;
   channels: Channel[];
   channel: Channel;
-  users: User[];
   user: User;
-  bot: User;
+  users: User[];
 }) {
   return (
     <section className="flex-1 flex flex-col  overflow-auto ">
@@ -37,42 +67,17 @@ export default function GroupApp({
           Name: channel.ChannelName || '群聊'
         }}
       >
-        <div className="px-4  flex flex-row items-center  ">
-          <select
-            onChange={e => {
-              const selectedChannel = channels.find(
-                item => item.ChannelId === e.target.value
-              );
-              if (selectedChannel) {
-                onSelect(selectedChannel);
-              }
-            }}
-            className="px-2 py-1 rounded-md bg-[var(--vscode-input-background)] hover:bg-[var(--vscode-activityBar-background)] text-[var(--vscode-input-foreground)]"
-          >
-            {channels.map((item, index) => {
-              return (
-                <option key={index} value={item.ChannelId}>
-                  {item.ChannelId}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        <ChannelSelect channels={channels} onSelect={onSelect} />
       </MessageHeader>
-      {
-        // 消息窗口
-      }
       <div className="flex-1 flex overflow-auto">
         <MessageWondow
           message={message}
           onDelete={onDelete}
           onSend={onSend}
           onInput={onInput}
+          UserId={user.UserId}
         />
       </div>
-      {
-        // 输入窗口
-      }
       <Textarea
         value={value}
         onContentChange={onInput}

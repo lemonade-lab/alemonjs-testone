@@ -6,12 +6,14 @@ export default function MessageWondow({
   message,
   onDelete,
   onSend = () => {},
-  onInput = () => {}
+  onInput = () => {},
+  UserId
 }: {
   message: MessageItem[];
   onDelete: (item: MessageItem) => void;
   onSend: (value: string) => void;
   onInput: (value: string) => void;
+  UserId: string;
 }) {
   const MessageWindowRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -33,33 +35,20 @@ export default function MessageWondow({
           <div
             key={index}
             className={`flex gap-2 ${
-              !item.IsBot ? 'ml-auto flex-row-reverse' : 'mr-auto'
+              UserId === item.UserId ? 'ml-auto flex-row-reverse' : 'mr-auto'
             }`}
           >
-            {
-              // 头像地址
-            }
-            {item.IsBot ? (
-              <div className="size-12">BOT</div>
-            ) : (
-              <img
-                className="size-12 rounded-full"
-                src={item.UserAvatar}
-                alt="Avatar"
-              />
-            )}
-            {
-              // 气泡框
-            }
+            <img
+              className="size-12 rounded-full"
+              src={item.UserAvatar}
+              alt="Avatar"
+            />
             <MessageBubble
               data={item.data}
               onSend={onSend}
               onInput={onInput}
-              createAt={item.createAt}
+              createAt={item.CreateAt}
             />
-            {
-              // 删除消息
-            }
             <div
               onClick={() => onDelete(item)}
               className="select-none cursor-pointer flex justify-end items-end"

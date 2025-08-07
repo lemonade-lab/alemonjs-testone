@@ -24,10 +24,9 @@ export type User = {
 export type PageTag = 'connect' | 'group' | 'private';
 
 export type MessageItem = {
-  IsBot: boolean;
   UserId: string;
   UserName: string;
   UserAvatar: string;
-  createAt: number;
+  CreateAt: number;
   data: DataEnums[];
 };

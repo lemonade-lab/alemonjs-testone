@@ -57,6 +57,65 @@ const ConnectItem = ({
   );
 };
 
+const ConnectForm = ({
+  formData,
+  setFormData,
+  setShowAdd,
+  onSubmit
+}: {
+  formData: Connect;
+  setFormData: (data: Connect) => void;
+  setShowAdd: (show: boolean) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}) => {
+  return (
+    <form
+      className="w-full flex flex-col gap-2 bg-[var(--vscode-editor-background)] rounded-lg p-4 shadow"
+      onSubmit={onSubmit}
+      style={{ minWidth: 320 }}
+    >
+      <Input
+        type="text"
+        name="name"
+        placeholder="备注"
+        value={formData.name}
+        onChange={e => setFormData({ ...formData, name: e.target.value })}
+        required
+      />
+      <Input
+        type="text"
+        name="host"
+        placeholder="地址"
+        value={formData.host}
+        onChange={e => setFormData({ ...formData, host: e.target.value })}
+        required
+      />
+      <Input
+        type="number"
+        name="port"
+        placeholder="端口"
+        value={formData.port}
+        onChange={e =>
+          setFormData({ ...formData, port: Number(e.target.value) })
+        }
+        required
+      />
+      <div className="flex flex-row gap-4 justify-end">
+        <Button
+          className="flex-1"
+          type="button"
+          onClick={() => setShowAdd(false)}
+        >
+          取消
+        </Button>
+        <Button className="flex-1" type="submit">
+          保存
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 const ConnectList = ({
   value,
   onOk,
@@ -130,54 +189,12 @@ const ConnectList = ({
               + 添加新连接
             </ConnectItem>
           ) : (
-            <form
-              className="w-full flex flex-col gap-2 bg-[var(--vscode-editor-background)] rounded-lg p-4 shadow"
+            <ConnectForm
+              formData={formData}
+              setFormData={setFormData}
+              setShowAdd={setShowAdd}
               onSubmit={onSubmit}
-              style={{ minWidth: 320 }}
-            >
-              <Input
-                type="text"
-                name="name"
-                placeholder="备注"
-                value={formData.name}
-                onChange={e =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                required
-              />
-              <Input
-                type="text"
-                name="host"
-                placeholder="地址"
-                value={formData.host}
-                onChange={e =>
-                  setFormData({ ...formData, host: e.target.value })
-                }
-                required
-              />
-              <Input
-                type="number"
-                name="port"
-                placeholder="端口"
-                value={formData.port}
-                onChange={e =>
-                  setFormData({ ...formData, port: Number(e.target.value) })
-                }
-                required
-              />
-              <div className="flex flex-row gap-4 justify-end">
-                <Button
-                  className="flex-1"
-                  type="button"
-                  onClick={() => setShowAdd(false)}
-                >
-                  取消
-                </Button>
-                <Button className="flex-1" type="submit">
-                  保存
-                </Button>
-              </div>
-            </form>
+            />
           )}
         </div>
       )}
