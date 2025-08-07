@@ -1,7 +1,6 @@
 import { PageTag } from './typing';
-/**
- *
- */
+
+// 页面类型映射
 export const ACTIONS_MAP: {
   [key: string]: PageTag;
 } = {
@@ -10,6 +9,7 @@ export const ACTIONS_MAP: {
   'ALemonTestOne.openConnect': 'connect'
 };
 
+// 默认连接配置
 export const initConfig = {
   name: '默认连接',
   host: '127.0.0.1',
@@ -41,5 +41,5 @@ export const initChannel = {
   GuildId: '1012967625',
   ChannelId: '1012967625',
   ChannelName: '机器人交流群',
-  ChannelAvatar: 'https://ALemonTestOne.com/img/alemon.png'
+  ChannelAvatar: 'https://alemonjs.com/img/alemon.png'
 };

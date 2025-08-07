@@ -62,12 +62,14 @@ const ConnectList = ({
   onOk,
   onAdd,
   onDel,
+  onCancel,
   connecting
 }: {
   value: Connect[];
   onOk?: (data: Connect) => void;
   onAdd?: (data: Connect) => void;
   onDel?: (data: Connect) => void;
+  onCancel?: () => void;
   connecting?: boolean;
 }) => {
   const [showAdd, setShowAdd] = useState(false);
@@ -96,6 +98,7 @@ const ConnectList = ({
       {connecting ? (
         <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">
           <span>正在连接...</span>
+          <Button onClick={onCancel}>取消连接</Button>
         </div>
       ) : (
         <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">

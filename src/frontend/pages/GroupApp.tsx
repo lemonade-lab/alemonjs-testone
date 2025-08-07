@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Channel, MessageItem, User } from '@/frontend/typing';
 import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
@@ -10,7 +9,9 @@ export default function GroupApp({
   onSend,
   message,
   onDelete,
+  onSelect,
   channels,
+  channel,
   users,
   user,
   bot
@@ -20,12 +21,13 @@ export default function GroupApp({
   message: MessageItem[];
   onSend: (message: string) => void;
   onDelete: (item: MessageItem) => void;
+  onSelect: (channel: Channel) => void;
   channels: Channel[];
+  channel: Channel;
   users: User[];
   user: User;
   bot: User;
 }) {
-  const [channel, setChannel] = useState<Channel>(channels[0]);
   return (
     <section className="flex-1 flex flex-col  overflow-auto ">
       <MessageHeader
@@ -38,8 +40,12 @@ export default function GroupApp({
         <div className="px-4  flex flex-row items-center  ">
           <select
             onChange={e => {
-              const index = e.target.selectedIndex;
-              setChannel(channels[index]);
+              const selectedChannel = channels.find(
+                item => item.ChannelId === e.target.value
+              );
+              if (selectedChannel) {
+                onSelect(selectedChannel);
+              }
             }}
             className="px-2 py-1 rounded-md bg-[var(--vscode-input-background)] hover:bg-[var(--vscode-activityBar-background)] text-[var(--vscode-input-foreground)]"
           >
