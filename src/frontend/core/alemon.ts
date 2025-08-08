@@ -1,6 +1,9 @@
+import { DataEnums, User } from 'alemonjs';
 import CryptoJS from 'crypto-js';
 
 export const Platform = 'testone';
+
+import { User as UserType } from '@/frontend/typing';
 
 /**
  * 将字符串转为定长字符串
@@ -37,4 +40,30 @@ const createHash = (
  */
 export const useUserHashKey = (event: { Platform: string; UserId: string }) => {
   return createHash(`${event.Platform}:${event.UserId}`);
+};
+
+export const payloadToMentions = (
+  payload: {
+    event: { value: DataEnums[] };
+  },
+  users: UserType[]
+): User[] => {
+  return payload.event.value
+    .filter(item => item.type === 'Mention')
+    .map(item => {
+      const UserId = item.value;
+      const user = users.find(u => u.UserId === UserId);
+      if (!user) {
+        return null;
+      }
+      const UserKey = useUserHashKey({
+        Platform: Platform,
+        UserId: UserId || ''
+      });
+      return {
+        ...user,
+        UserKey: UserKey
+      };
+    })
+    .filter(user => !!user);
 };

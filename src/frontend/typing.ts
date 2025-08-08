@@ -18,6 +18,7 @@ export type User = {
   UserName: string;
   UserAvatar: string;
   OpenId?: string; // 可选属性
+  IsMaster: boolean;
   IsBot: boolean;
 };
 

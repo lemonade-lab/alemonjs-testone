@@ -1,13 +1,3 @@
 :root {
     --vscode-test-background: #007acc;
-    /* --sidebar-border: var(--vscode-sidebar-border);
-    --activityBar-activeBackground: var(--vscode-activityBar-activeBackground);
-    --textPreformat-background: var(--vscode-textPreformat-background);
-    --textPreformat-foreground: var(--vscode-textPreformat-foreground);
-    --panel-background: var(--vscode-panel-background);
-    --editor-background: var(--vscode-editor-background);
-    --button-background: var(--vscode-button-background);
-    --activityBar-background: var(--vscode-activityBar-background);
-    --sideBar-foreground: var(--vscode-sideBar-foreground); */
-    /** 重新规定一份，用来调整颜色 */
 }

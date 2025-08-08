@@ -113,7 +113,7 @@ export default function MessageBubble({
           } else if (item.options?.belong == 'user') {
             return (
               <span key={index}>
-                <strong>@{item.value}</strong>
+                <strong>@{item?.options?.name || item.value}</strong>
               </span>
             );
           } else if (item.options?.belong == 'everyone') {

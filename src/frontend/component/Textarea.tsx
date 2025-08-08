@@ -82,8 +82,11 @@ export default function Textarea({
   }, [onClickSend]);
 
   const handleUserSelection = useCallback(
-    (userName: string) => {
-      const newValue = textareaValue.replace(/@$/, `<@${userName}> `);
+    (userName: string, UserId: string) => {
+      const newValue = textareaValue.replace(
+        /@$/,
+        `<@${UserId}::${userName}> `
+      );
       setTextareaValue(newValue);
       setShowUserList(false);
 
@@ -145,19 +148,17 @@ export default function Textarea({
       {showUserList && userList && userList.length > 1 && (
         <div
           style={{
-            position: 'fixed',
             left: caretPos.left,
             top: caretPos.top - userListHeight,
-            zIndex: 1000,
-            width: '9rem'
+            zIndex: 1000
           }}
-          className="rounded-md max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--vscode-sidebar-border)] bg-[var(--vscode-editor-background)]"
+          className="rounded-md fixed w-[9rem] max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--vscode-sidebar-border)] bg-[var(--vscode-editor-background)]"
         >
           <div ref={selectRef} className="flex flex-col px-2 py-1">
             {userList.map(user => (
               <div
                 key={user.UserId}
-                onClick={() => handleUserSelection(user.UserName)}
+                onClick={() => handleUserSelection(user.UserName, user.UserId)}
                 className="rounded-md cursor-pointer p-1 hover:bg-[var(--vscode-activityBar-background)] text-sm"
               >
                 {user.UserName}

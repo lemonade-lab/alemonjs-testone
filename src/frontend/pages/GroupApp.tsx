@@ -109,6 +109,7 @@ export default function GroupApp({
               UserId: 'everyone',
               UserName: '全体成员',
               UserAvatar: '',
+              IsMaster: false,
               IsBot: false
             },
             ...users

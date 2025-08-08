@@ -3,6 +3,7 @@ import { Connect } from '@/frontend/typing';
 import { Button } from '@/frontend/ui/Button';
 import { Input } from '@/frontend/ui/Input';
 import { saveConnect } from '@/frontend/core/connect';
+import LoadingOutlined from '@ant-design/icons/LoadingOutlined';
 
 const defaultForm: Connect = {
   host: '',
@@ -156,7 +157,10 @@ const ConnectList = ({
     <div className="w-full h-full flex flex-col items-center justify-center">
       {connecting ? (
         <div className="w-full max-w-md flex flex-col items-center gap-4 p-4">
-          <span>正在连接...</span>
+          <div className="flex gap-2 items-center">
+            <LoadingOutlined />
+            正在连接...
+          </div>
           <Button onClick={onCancel}>取消连接</Button>
         </div>
       ) : (

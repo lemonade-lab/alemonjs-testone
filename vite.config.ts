@@ -2,8 +2,7 @@ import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'url';
 import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
-const NODE_ENV =
-  process.env.NODE_ENV === 'development' || process.env.BUILD === 'dev';
+const NODE_ENV = process.env.NODE_ENV === 'development';
 export default defineConfig({
   plugins: [react()],
   resolve: {

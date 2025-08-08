@@ -17,9 +17,9 @@ import { PrivateEventMessageCreate, PublicEventMessageCreate } from 'alemonjs';
 import * as flattedJSON from 'flatted';
 import { ACTIONS_MAP, initCommand } from '../config';
 import { initBot, initChannel, initConfig, initUser } from '../config';
-import { Platform, useUserHashKey } from '../core/alemon';
+import { payloadToMentions, Platform, useUserHashKey } from '../core/alemon';
 import Header from './Header';
-
+import { parseMessage } from '../core/parse';
 /**
  *
  * @returns
@@ -43,21 +43,15 @@ export default function App() {
   });
   // 用户列表
   const [users, setUsers] = useState<User[]>([]);
+  const usersRef = useRef(users);
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
   // 频道列表
   const [channels, setChannels] = useState<Channel[]>([initChannel]);
   const [channel, setChannel] = useState<Channel>(channels[0]);
   // 指令列表
-  const [commands, setCommands] = useState<Command[]>([
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand,
-    initCommand
-  ]);
+  const [commands, setCommands] = useState<Command[]>([initCommand]);
   // 输入框内容
   const [value, setValue] = useState('');
   // 机器人配置
@@ -128,10 +122,9 @@ export default function App() {
       if (!event.data.type) {
         return;
       }
-      console.log('Received message:', event.data);
+      console.log('vscode:', event.data);
       const message = event.data;
       if (ACTIONS_MAP[message.type]) {
-        console.log('status', status);
         // 如果不是连接页。需要判断是否是连接状态
         if (
           message.type !== 'ALemonTestOne.openConnect' &&
@@ -185,9 +178,9 @@ export default function App() {
       publicMessage
     } = data.payload;
     if (users.length > 0) {
-      setUsers(users);
+      setUsers([initBot, initBot, ...users]);
     } else {
-      setUsers([initUser]);
+      setUsers([initUser, initBot]);
     }
     if (channels.length > 0) {
       setChannels(channels);
@@ -247,11 +240,23 @@ export default function App() {
         );
       }
     } else if (data.action === 'mention.get') {
-      // 获取消息里的提及
-      const event = data.payload.event;
-      //
-    } else if (data.action === 'message.delete') {
-      // 删除指定的消息
+      console.log('mentions');
+      // 回复这个 action
+      const us = payloadToMentions(data.payload, usersRef.current);
+      console.log('mentions', us);
+
+      window.websocket?.send(
+        flattedJSON.stringify({
+          ...data,
+          payload: [
+            {
+              code: 2000,
+              message: '',
+              data: us
+            }
+          ]
+        })
+      );
     }
   };
 
@@ -286,7 +291,7 @@ export default function App() {
      */
     window.websocket.onmessage = (e: MessageEvent) => {
       const data = flattedJSON.parse(e.data.toString());
-      console.log('data', data);
+      console.log('收到消息', data);
       if (data.type === 'init.data') {
         initData(data);
       } else if (data.type === 'users') {
@@ -306,7 +311,6 @@ export default function App() {
       } else if (data.type === 'bot') {
         // 机器人信息
         if (data.payload) {
-          console.log('bot', data.payload);
           setBot(data.payload);
         }
       } else if (data.type === 'user') {
@@ -316,7 +320,7 @@ export default function App() {
         }
       } else if (data.apiId) {
         // api 调用
-      } else if (data.action) {
+      } else if (data.actionId) {
         action(data);
       }
     };
@@ -362,6 +366,13 @@ export default function App() {
         Platform: Platform,
         UserId: user.UserId
       });
+      const content = parseMessage({
+        Users: users,
+        Channels: channels,
+        input: message
+      });
+      const MessageText =
+        content.find(item => item.type === 'Text')?.value || '';
       const data = {
         name: 'message.create',
         ChannelId: channel.ChannelId,
@@ -373,20 +384,16 @@ export default function App() {
         IsMaster: false,
         UserAvatar: user.UserAvatar,
         Platform: Platform,
-        MessageText: message,
-        CreateAt: Date.now()
+        MessageText: MessageText,
+        CreateAt: Date.now(),
+        value: content
       } as PublicEventMessageCreate;
       const messageItem: MessageItem = {
         UserId: data?.UserId || '',
         UserName: data?.UserName || '',
         UserAvatar: data?.UserAvatar || '',
         CreateAt: data?.CreateAt || Date.now(),
-        data: [
-          {
-            type: 'Text',
-            value: message
-          }
-        ]
+        data: content
       };
       setGroupMessages(prev => [...prev, messageItem]);
       window.websocket.send(flattedJSON.stringify(data));
@@ -406,6 +413,14 @@ export default function App() {
         Platform: Platform,
         UserId: user.UserId
       });
+      const content = parseMessage({
+        Users: users,
+        Channels: channels,
+        input: message
+      });
+      const MessageText =
+        content.find(item => item.type === 'Text')?.value || '';
+      // 发送私聊消息
       const data = {
         name: 'private.message.create',
         UserId: user.UserId,
@@ -416,7 +431,8 @@ export default function App() {
         IsMaster: false,
         Platform: Platform,
         CreateAt: Date.now(),
-        MessageText: message
+        MessageText: MessageText,
+        value: content
       } as PrivateEventMessageCreate;
       // 增加消息
       const messageItem: MessageItem = {
@@ -424,12 +440,7 @@ export default function App() {
         UserName: data?.UserName || '',
         UserAvatar: data?.UserAvatar || '',
         CreateAt: data?.CreateAt || Date.now(),
-        data: [
-          {
-            type: 'Text',
-            value: message
-          }
-        ]
+        data: content
       };
       setPrivateMessages(prev => [...prev, messageItem]);
       // 发送消息

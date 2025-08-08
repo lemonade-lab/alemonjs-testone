@@ -23,6 +23,7 @@ export const initBot = {
   UserAvatar: 'https://q.qlogo.cn/headimg_dl?dst_uin=794161769&spec=100',
   UserName: '阿柠檬',
   OpenId: '794161769',
+  IsMaster: false,
   IsBot: true
 };
 
@@ -33,6 +34,7 @@ export const initUser = {
   UserAvatar: 'https://q.qlogo.cn/headimg_dl?dst_uin=1715713638&spec=100',
   UserName: '我自己',
   OpenId: '1715713638',
+  IsMaster: true,
   IsBot: false
 };
 
@@ -45,7 +47,7 @@ export const initChannel = {
 };
 
 export const initCommand = {
-  title: '指令示例',
-  description: '这是一个指令示例',
-  text: '/example'
+  title: '帮助',
+  description: '获取帮助信息',
+  text: '/帮助'
 };
