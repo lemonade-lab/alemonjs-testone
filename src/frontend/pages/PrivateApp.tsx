@@ -1,7 +1,9 @@
-import { MessageItem, User } from '@/frontend/typing';
+import { Command, MessageItem, User } from '@/frontend/typing';
 import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
+import CommandList from '../component/CommandList';
+import { useState } from 'react';
 
 export default function PrivateApp({
   value,
@@ -10,7 +12,8 @@ export default function PrivateApp({
   onSend,
   onDelete,
   bot,
-  user
+  user,
+  commands
 }: {
   value: string;
   onInput: (val: string) => void;
@@ -19,7 +22,12 @@ export default function PrivateApp({
   onDelete: (message: MessageItem) => void;
   bot: User;
   user: User;
+  commands: Command[];
 }) {
+  const [showCommands, setShowCommands] = useState<boolean>(false);
+  const handleCommandSelect = (command: Command) => {
+    onInput(command.text);
+  };
   return (
     <section className="flex-1 flex flex-col  overflow-auto ">
       <MessageHeader
@@ -38,12 +46,25 @@ export default function PrivateApp({
           UserId={user.UserId}
         />
       </div>
-      <Textarea
-        value={value}
-        onContentChange={onInput}
-        onClickSend={() => onSend(value)}
-        userList={[]}
-      />
+      <div className="relative">
+        <CommandList
+          commands={commands}
+          onCommandSelect={handleCommandSelect}
+          isVisible={showCommands}
+          onClose={() => setShowCommands(false)}
+        />
+        <Textarea
+          value={value}
+          onContentChange={onInput}
+          onClickSend={() => onSend(value)}
+          userList={[]}
+          onAppClick={action => {
+            if (action === 'commands') {
+              setShowCommands(!showCommands);
+            }
+          }}
+        />
+      </div>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import GroupApp from '@/frontend/pages/GroupApp';
 import PrivateApp from '@/frontend/pages/PrivateApp';
 import {
   Channel,
+  Command,
   Connect,
   MessageItem,
   PageTag,
@@ -12,15 +13,12 @@ import { isArray } from 'lodash-es';
 import ConnectList from '@/frontend/pages/ConnectList';
 import { getConnectList } from '@/frontend/core/connect';
 import { Message } from '@/frontend/core/message';
-import {
-  DataEnums,
-  PrivateEventMessageCreate,
-  PublicEventMessageCreate
-} from 'alemonjs';
+import { PrivateEventMessageCreate, PublicEventMessageCreate } from 'alemonjs';
 import * as flattedJSON from 'flatted';
-import { ACTIONS_MAP } from '../config';
+import { ACTIONS_MAP, initCommand } from '../config';
 import { initBot, initChannel, initConfig, initUser } from '../config';
 import { Platform, useUserHashKey } from '../core/alemon';
+import Header from './Header';
 
 /**
  *
@@ -49,7 +47,17 @@ export default function App() {
   const [channels, setChannels] = useState<Channel[]>([initChannel]);
   const [channel, setChannel] = useState<Channel>(channels[0]);
   // 指令列表
-  const [commands, setCommands] = useState<any[]>([]);
+  const [commands, setCommands] = useState<Command[]>([
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand,
+    initCommand
+  ]);
   // 输入框内容
   const [value, setValue] = useState('');
   // 机器人配置
@@ -84,6 +92,14 @@ export default function App() {
     }
   }, [isRestart]);
 
+  const onGoTag = (type: PageTag) => {
+    if (type !== 'connect' && !statusRef.current) {
+      Message.info('请先连接服务器');
+      return;
+    }
+    setTag(type);
+  };
+
   useEffect(() => {
     /**
      * @param code
@@ -109,6 +125,9 @@ export default function App() {
         payload: any;
       };
     }) => {
+      if (!event.data.type) {
+        return;
+      }
       console.log('Received message:', event.data);
       const message = event.data;
       if (ACTIONS_MAP[message.type]) {
@@ -147,7 +166,7 @@ export default function App() {
   const initData = (data: {
     type: string;
     payload: {
-      commands?: any[];
+      commands: Command[];
       users: User[];
       channels: Channel[];
       bot?: User;
@@ -187,7 +206,7 @@ export default function App() {
     } else {
       setBot(initBot);
     }
-    if (commands && isArray(commands)) {
+    if (commands.length > 0) {
       setCommands(commands);
     }
     setPrivateMessages(privateMessage);
@@ -494,6 +513,7 @@ export default function App() {
         onSend={onSendPublic}
         onDelete={onDeleteGroup}
         user={user}
+        commands={commands}
       />
     ),
     private: (
@@ -505,11 +525,13 @@ export default function App() {
         onSend={onSendPrivate}
         onDelete={onDeletePrivate}
         user={user}
+        commands={commands}
       />
     )
   };
   return (
     <div className="overflow-hidden flex flex-1 flex-col bg-[var(--vscode-sideBar-background)] ">
+      {!!!window.vscode && <Header onClick={type => onGoTag(type)} />}
       {renderMap[tag]}
       {tag !== 'connect' && (
         <footer className="flex flex-row justify-between items-center px-4 select-none ">

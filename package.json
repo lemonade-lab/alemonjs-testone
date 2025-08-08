@@ -26,6 +26,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@ant-design/icons": "^6.0.0",
     "@babel/eslint-parser": "^7.12.13",
     "@babel/eslint-plugin": "^7.12.13",
     "@ecomfe/eslint-config": "^7.0.0",

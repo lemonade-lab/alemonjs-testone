@@ -30,3 +30,9 @@ export type MessageItem = {
   CreateAt: number;
   data: DataEnums[];
 };
+
+export type Command = {
+  title: string;
+  description: string;
+  text: string;
+};

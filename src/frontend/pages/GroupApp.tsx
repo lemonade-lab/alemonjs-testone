@@ -1,7 +1,9 @@
-import { Channel, MessageItem, User } from '@/frontend/typing';
+import { Channel, Command, MessageItem, User } from '@/frontend/typing';
 import MessageWondow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
+import { useState } from 'react';
+import CommandList from '../component/CommandList';
 
 const ChannelSelect = ({
   channels,
@@ -45,7 +47,8 @@ export default function GroupApp({
   channels,
   channel,
   user,
-  users
+  users,
+  commands
 }: {
   value: string;
   onInput: (val: string) => void;
@@ -57,7 +60,14 @@ export default function GroupApp({
   channel: Channel;
   user: User;
   users: User[];
+  commands: Command[];
 }) {
+  const [showCommands, setShowCommands] = useState(false);
+
+  const handleCommandSelect = (command: Command) => {
+    onInput(command.text);
+  };
+
   return (
     <section className="flex-1 flex flex-col  overflow-auto ">
       <MessageHeader
@@ -78,20 +88,33 @@ export default function GroupApp({
           UserId={user.UserId}
         />
       </div>
-      <Textarea
-        value={value}
-        onContentChange={onInput}
-        onClickSend={() => onSend(value)}
-        userList={[
-          {
-            UserId: 'everyone',
-            UserName: '全体成员',
-            UserAvatar: '',
-            IsBot: false
-          },
-          ...users
-        ]}
-      />
+      <div className="relative">
+        <CommandList
+          commands={commands}
+          onCommandSelect={handleCommandSelect}
+          isVisible={showCommands}
+          onClose={() => setShowCommands(false)}
+        />
+        <Textarea
+          value={value}
+          onContentChange={onInput}
+          onClickSend={() => onSend(value)}
+          onAppClick={action => {
+            if (action === 'commands') {
+              setShowCommands(!showCommands);
+            }
+          }}
+          userList={[
+            {
+              UserId: 'everyone',
+              UserName: '全体成员',
+              UserAvatar: '',
+              IsBot: false
+            },
+            ...users
+          ]}
+        />
+      </div>
     </section>
   );
 }

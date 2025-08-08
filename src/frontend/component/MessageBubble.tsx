@@ -5,28 +5,27 @@ import { type DataEnums } from 'alemonjs';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
 import './MessageBubble.scss';
-/**
- *
- * @param param0
- * @returns
- */
+
+type MessageBubble = {
+  data: DataEnums[];
+  createAt: number;
+  onSend: (value: string) => void;
+  onInput: (value: string) => void;
+};
+
 export default function MessageBubble({
   data,
   createAt,
   onSend = () => {},
   onInput = () => {}
-}: {
-  data: DataEnums[];
-  createAt: number;
-  onSend: (value: string) => void;
-  onInput: (value: string) => void;
-}) {
+}: MessageBubble) {
   return (
     <div className="rounded-md relative p-3 shadow-md bg-[var(--vscode-panel-background)]">
       {
         // 消息是一个body。需要按格式解析
       }
       {data.map((item, index) => {
+        // Ark 都暂时不支持
         if (item.type == 'MD.template') {
           return <div key={index}>暂时不支持</div>;
         } else if (item.type === 'Ark.BigCard') {
@@ -85,11 +84,7 @@ export default function MessageBubble({
           } else if (item.options?.style == 'boldItalic') {
             return <span key={index}>{text}</span>;
           } else if (item.options?.style == 'block') {
-            return (
-              <span className="shadow-inner" key={index}>
-                {text}
-              </span>
-            );
+            return <span key={index}>{text}</span>;
           } else if (item.options?.style == 'strikethrough') {
             return <code key={index}>{text}</code>;
           } else if (item.options?.style == 'none') {
@@ -200,14 +195,21 @@ export default function MessageBubble({
         } else if (item.type === 'Markdown') {
           const markdown = item.value;
           return (
-            <div key={index}>
+            <div className="mb-4" key={index}>
               {markdown.map((item, index) => {
                 if (item.type === 'MD.title') {
                   return <h1 key={index}>{item.value}</h1>;
                 } else if (item.type === 'MD.blockquote') {
                   return <blockquote key={index}>{item.value}</blockquote>;
                 } else if (item.type === 'MD.bold') {
-                  return <strong key={index}>{item.value}</strong>;
+                  return (
+                    <strong
+                      className="px-1 py-2 rounded-md shadow-inner"
+                      key={index}
+                    >
+                      {item.value}
+                    </strong>
+                  );
                 } else if (item.type === 'MD.divider') {
                   return <hr key={index} />;
                 } else if (item.type === 'MD.text') {

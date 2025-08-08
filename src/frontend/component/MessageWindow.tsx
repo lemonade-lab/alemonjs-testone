@@ -2,19 +2,21 @@ import { useEffect, useRef } from 'react';
 import MessageBubble from '@/frontend/component/MessageBubble';
 import { MessageItem } from '../typing';
 
+type MessageWondow = {
+  message: MessageItem[];
+  onDelete: (item: MessageItem) => void;
+  onSend: (value: string) => void;
+  onInput: (value: string) => void;
+  UserId: string;
+};
+
 export default function MessageWondow({
   message,
   onDelete,
   onSend = () => {},
   onInput = () => {},
   UserId
-}: {
-  message: MessageItem[];
-  onDelete: (item: MessageItem) => void;
-  onSend: (value: string) => void;
-  onInput: (value: string) => void;
-  UserId: string;
-}) {
+}: MessageWondow) {
   const MessageWindowRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (MessageWindowRef.current) {

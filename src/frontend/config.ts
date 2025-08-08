@@ -43,3 +43,9 @@ export const initChannel = {
   ChannelName: '机器人交流群',
   ChannelAvatar: 'https://alemonjs.com/img/alemon.png'
 };
+
+export const initCommand = {
+  title: '指令示例',
+  description: '这是一个指令示例',
+  text: '/example'
+};

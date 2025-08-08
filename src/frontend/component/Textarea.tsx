@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SendIcon } from '@/frontend/ui/Icons';
-import { User } from '../typing';
+import { User } from '@/frontend/typing';
+import RobotOutlined from '@ant-design/icons/RobotOutlined';
+import { getCaretCoordinates } from '@/frontend/component/caretCoordin';
 
 interface TextareaProps extends React.HTMLAttributes<HTMLTextAreaElement> {
   value: string;
   onContentChange?: (content: string) => void;
   onClickSend: () => void;
   userList?: User[];
+  onAppClick?: (action: 'commands') => void;
 }
 
 export default function Textarea({
@@ -14,144 +17,187 @@ export default function Textarea({
   onContentChange,
   onClickSend,
   userList,
+  onAppClick,
   ...props
 }: TextareaProps) {
-  // 是否显示用户列表
   const [showUserList, setShowUserList] = useState<boolean>(false);
-
-  // 输入框内容
-  const [textareaValue, setTextareaValue] = useState<string>('');
+  const [textareaValue, setTextareaValue] = useState<string>(value || '');
+  const [caretPos, setCaretPos] = useState<{ left: number; top: number }>({
+    left: 0,
+    top: 0
+  });
+  const [userListHeight, setUserListHeight] = useState<number>(0);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  // 监听输入到每一个字符。当输入到@的时候，显示用户列表，并聚焦到第一个用户。
-  useEffect(() => {
-    // 如果输入的内容以@结尾
-    if (textareaValue.endsWith('@')) {
-      // 显示用户列表
-      setShowUserList(true);
-    } else {
-      // 隐藏用户列表
-      setShowUserList(false);
-    }
-    // 当输入框内容改变时，触发回调函数
-    onContentChange?.(textareaValue);
-  }, [textareaValue]);
-
-  useEffect(() => {
-    // 如果value有值，且textareaValue不等于value，则更新textareaValue
-    if (value && textareaValue !== value) {
-      setTextareaValue(value);
-      // 确保输入框聚焦
-      textareaRef.current?.focus();
-    }
-  }, [value]);
-
-  // useEffect(() => {
-  //   textareaValue !== value && setTextareaValue(value);
-  // }, [value]);
-
-  const onSend = async () => {
-    try {
-      await onClickSend();
-      // 清空输入框
-      setTextareaValue('');
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  /**
-   * 选择用户
-   * @param userName
-   */
-  const handleUserSelection = (userName: string) => {
-    // 选择用户后，将用户名插入到光标处。
-    const value = textareaValue.replace(/@$/, `<@${userName}> `);
-    setTextareaValue(value);
-    showUserList && setShowUserList(false);
-  };
-
   const selectRef = useRef<HTMLDivElement | null>(null);
 
-  // useEffect(() => {
-  //   // 聚焦第一个子元素
-  //   if (showUserList && userList && userList.length > 1) {
-  //     const firstChild = selectRef.current?.firstElementChild as HTMLElement;
-  //     firstChild?.focus();
-  //   } else {
-  //     // 确保重新聚焦到输入框
-  //     // 先判断是否聚焦
-  //     if (document.activeElement !== textareaRef.current) {
-  //       textareaRef.current?.focus();
-  //     }
-  //   }
-  // }, [showUserList]);
+  // 使用 ref 来避免在 useEffect 依赖中包含 onContentChange
+  const onContentChangeRef = useRef(onContentChange);
+  onContentChangeRef.current = onContentChange;
 
-  // 输入框内容改变
-  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    console.log(e.target.value);
-    setTextareaValue(e.target.value);
-  };
-
-  /**
-   * 回车
-   * @param e
-   */
-  const onKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      setTextareaValue(textareaValue + '\n');
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      console.log('Enter');
-      await onSend();
+  // 处理 @ 符号逻辑和内容变化
+  useEffect(() => {
+    if (textareaValue.endsWith('@')) {
+      setShowUserList(true);
+      updateCaretPosition();
+    } else {
+      setShowUserList(false);
     }
-  };
 
-  /**
-   * 点击发送按钮
-   * @param e
-   */
-  const onClick = async (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    await onSend();
-  };
+    // 使用 ref 调用回调，避免依赖问题
+    onContentChangeRef.current?.(textareaValue);
+  }, [textareaValue]); // 只依赖 textareaValue
+
+  // 只在外部 value 真正变化时同步
+  useEffect(() => {
+    // 添加条件：只有当外部 value 与当前 textareaValue 不同时才更新
+    if (value !== textareaValue) {
+      setTextareaValue(value);
+    }
+  }, [value]); // 只依赖 value，移除 textareaValue 依赖
+
+  // 监听用户列表高度变化
+  useEffect(() => {
+    if (showUserList && selectRef.current) {
+      setUserListHeight(selectRef.current.offsetHeight);
+    }
+  }, [showUserList, userList]);
+
+  // 使用 useCallback 优化函数
+  const updateCaretPosition = useCallback(() => {
+    if (textareaRef.current) {
+      const position = textareaRef.current.selectionEnd;
+      const coords = getCaretCoordinates(textareaRef.current, position);
+      setCaretPos({ left: coords.left, top: coords.top });
+    }
+  }, []);
+
+  const onSend = useCallback(async () => {
+    try {
+      await onClickSend();
+      setTextareaValue('');
+    } catch (e) {
+      console.error('发送失败:', e);
+    }
+  }, [onClickSend]);
+
+  const handleUserSelection = useCallback(
+    (userName: string) => {
+      const newValue = textareaValue.replace(/@$/, `<@${userName}> `);
+      setTextareaValue(newValue);
+      setShowUserList(false);
+
+      setTimeout(() => {
+        textareaRef.current?.focus();
+        if (textareaRef.current) {
+          const length = newValue.length;
+          textareaRef.current.setSelectionRange(length, length);
+        }
+      }, 0);
+    },
+    [textareaValue]
+  );
+
+  const onChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      console.log('输入内容:', newValue);
+      setTextareaValue(newValue);
+
+      setTimeout(() => {
+        updateCaretPosition();
+      }, 0);
+    },
+    [updateCaretPosition]
+  );
+
+  const onKeyDown = useCallback(
+    async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        setTextareaValue(prev => prev + '\n');
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        console.log('按下回车发送');
+        await onSend();
+      } else if (e.key === 'Escape' && showUserList) {
+        setShowUserList(false);
+      }
+    },
+    [onSend, showUserList]
+  );
+
+  const onKeyUp = useCallback(() => {
+    updateCaretPosition();
+  }, [updateCaretPosition]);
+
+  const onClick = useCallback(
+    async (e: React.MouseEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      await onSend();
+    },
+    [onSend]
+  );
 
   return (
     <section className="select-none w-full flex flex-row justify-center px-4 py-1">
-      <div className="flex gap-2 flex-col border border-[var(--vscode-sidebar-border)] focus-within:border-[var(--vscode-button-background)] bg-[var(--vscode-editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-2">
-        {showUserList && userList && userList.length > 1 && (
-          <div className="absolute rounded-md w-full max-w-36 max-h-32 overflow-y-auto  shadow-md border border-[var(--vscode-sidebar-border)] bg-[var(--vscode-editor-background)]">
-            <div ref={selectRef} className="flex flex-col px-2 py-1">
-              {userList.map(user => (
-                <div
-                  key={user.UserId}
-                  onClick={() => handleUserSelection(user.UserName)}
-                  className="rounded-md cursor-pointer p-1 hover:bg-[var(--vscode-activityBar-background)]"
-                >
-                  {user.UserName}
-                </div>
-              ))}
-            </div>
+      {/* 用户列表弹框 */}
+      {showUserList && userList && userList.length > 1 && (
+        <div
+          style={{
+            position: 'fixed',
+            left: caretPos.left,
+            top: caretPos.top - userListHeight,
+            zIndex: 1000,
+            width: '9rem'
+          }}
+          className="rounded-md max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--vscode-sidebar-border)] bg-[var(--vscode-editor-background)]"
+        >
+          <div ref={selectRef} className="flex flex-col px-2 py-1">
+            {userList.map(user => (
+              <div
+                key={user.UserId}
+                onClick={() => handleUserSelection(user.UserName)}
+                className="rounded-md cursor-pointer p-1 hover:bg-[var(--vscode-activityBar-background)] text-sm"
+              >
+                {user.UserName}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* 主输入区域 */}
+      <div className="flex gap-2 flex-col border border-[var(--vscode-sidebar-border)] focus-within:border-[var(--vscode-button-background)] bg-[var(--vscode-editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
+        {/* 工具栏 */}
+        <div className="flex gap-2 shadow-inner rounded-md p-1">
+          <div
+            className="cursor-pointer"
+            onClick={() => onAppClick?.('commands')}
+          >
+            <RobotOutlined />
+          </div>
+        </div>
+
+        {/* 输入框 */}
         <textarea
           ref={textareaRef}
-          className="min-h-20 resize-none max-h-64 border-0 focus:border-0 bg-opacity-0 bg-[var(--vscode-editor-background)] rounded-md "
+          className="min-h-20 px-1 resize-none max-h-64 border-0 focus:border-0 bg-opacity-0 bg-[var(--vscode-editor-background)] rounded-md outline-none"
           placeholder="输入内容..."
           value={textareaValue}
           onChange={onChange}
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
           {...props}
         />
 
+        {/* 底部工具栏 */}
         <div className="flex flex-row justify-between ">
-          <div className="text-[var(--vscode-textPreformat-background)]">
-            Control+Enter 换行
+          <div className="text-[var(--vscode-textPreformat-background)] text-sm">
+            Ctrl+Enter 换行
           </div>
           <div
-            className="border border-[var(--vscode-sidebar-border)] border-opacity-70  px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--vscode-button-background)]"
+            className="border border-[var(--vscode-sidebar-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--vscode-button-background)] transition-colors"
             onClick={onClick}
           >
             <SendIcon />
