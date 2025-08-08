@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Command } from '../typing';
 import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
 
@@ -44,4 +45,4 @@ const CommandList = ({
   );
 };
 
-export default CommandList;
+export default memo(CommandList);

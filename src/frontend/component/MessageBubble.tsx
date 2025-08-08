@@ -5,6 +5,7 @@ import { type DataEnums } from 'alemonjs';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
 import './MessageBubble.scss';
+import { memo } from 'react';
 
 type MessageBubble = {
   data: DataEnums[];
@@ -13,12 +14,13 @@ type MessageBubble = {
   onInput: (value: string) => void;
 };
 
-export default function MessageBubble({
+function MessageBubble({
   data,
   createAt,
   onSend = () => {},
   onInput = () => {}
 }: MessageBubble) {
+  console.log('MessageBubble data');
   return (
     <div className="rounded-md relative p-3 shadow-md bg-[var(--vscode-panel-background)]">
       {
@@ -35,14 +37,14 @@ export default function MessageBubble({
         } else if (item.type === 'Ark.list') {
           return <div key={index}>暂时不支持</div>;
         } else if (item.type == 'Image') {
-          // 数组，buffer 被格式化的数据
-          // 字符串，buffer base64 编码的数据
+          if (!item.value) {
+            return null;
+          }
           const data = Array.isArray(item.value)
             ? Buffer.from(item.value)
             : Buffer.from(item.value, 'base64');
-          const blob = new Blob([data]);
-          // 转为本地地址
-          const url = URL.createObjectURL(blob);
+          const base64String = data.toString('base64');
+          const url = `data:image/png;base64,${base64String}`;
           return (
             <Zoom key={index} classDialog="my-transparent-dialog">
               <img
@@ -54,7 +56,7 @@ export default function MessageBubble({
           );
         } else if (item.type == 'ImageURL') {
           const url = item.value;
-          return (
+          return url ? (
             <Zoom key={index} classDialog="my-transparent-dialog">
               <img
                 className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
@@ -62,7 +64,7 @@ export default function MessageBubble({
                 alt="ImageURL"
               />
             </Zoom>
-          );
+          ) : null;
         } else if (item.type == 'Text') {
           // 换行
           const text = item.value.includes('\n')
@@ -228,17 +230,18 @@ export default function MessageBubble({
                 } else if (item.type === 'MD.image') {
                   const w = item.options?.width || '100';
                   const h = item.options?.height || '100';
-                  return (
+                  const url = item.value;
+                  return url ? (
                     <Zoom key={index} classDialog="my-transparent-dialog">
                       <img
                         key={index}
                         style={{ width: `${w}px`, height: `${h}px` }}
                         className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-                        src={item.value}
+                        src={url}
                         alt="Image"
                       />
                     </Zoom>
-                  );
+                  ) : null;
                 } else if (item.type === 'MD.italic') {
                   return <em key={index}>{item.value}</em>;
                 } else if (item.type === 'MD.italicStar') {
@@ -287,3 +290,5 @@ export default function MessageBubble({
     </div>
   );
 }
+
+export default memo(MessageBubble);

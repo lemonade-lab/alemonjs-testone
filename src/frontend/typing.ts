@@ -36,4 +36,6 @@ export type Command = {
   title: string;
   description: string;
   text: string;
+  autoEnter?: boolean;
+  data?: DataEnums[];
 };

@@ -13,7 +13,11 @@ import { isArray } from 'lodash-es';
 import ConnectList from '@/frontend/pages/ConnectList';
 import { getConnectList } from '@/frontend/core/connect';
 import { Message } from '@/frontend/core/message';
-import { PrivateEventMessageCreate, PublicEventMessageCreate } from 'alemonjs';
+import {
+  DataEnums,
+  PrivateEventMessageCreate,
+  PublicEventMessageCreate
+} from 'alemonjs';
 import * as flattedJSON from 'flatted';
 import { ACTIONS_MAP, initCommand } from '../config';
 import { initBot, initChannel, initConfig, initUser } from '../config';
@@ -52,8 +56,7 @@ export default function App() {
   const [channel, setChannel] = useState<Channel>(channels[0]);
   // 指令列表
   const [commands, setCommands] = useState<Command[]>([initCommand]);
-  // 输入框内容
-  const [value, setValue] = useState('');
+
   // 机器人配置
   const [bot, setBot] = useState<User>(initBot);
   const botRef = useRef(bot);
@@ -361,15 +364,19 @@ export default function App() {
   };
 
   const onSendPublic = (message: string) => {
+    const content = parseMessage({
+      Users: users,
+      Channels: channels,
+      input: message
+    });
+    onSendFormatPublic(content);
+  };
+
+  const onSendFormatPublic = (content: DataEnums[]) => {
     if (window.websocket && window.websocket.readyState === WebSocket.OPEN) {
       const UserKey = useUserHashKey({
         Platform: Platform,
         UserId: user.UserId
-      });
-      const content = parseMessage({
-        Users: users,
-        Channels: channels,
-        input: message
       });
       const MessageText =
         content.find(item => item.type === 'Text')?.value || '';
@@ -408,16 +415,21 @@ export default function App() {
   };
 
   const onSendPrivate = (message: string) => {
+    const content = parseMessage({
+      Users: users,
+      Channels: channels,
+      input: message
+    });
+    onSendFormatPrivate(content);
+  };
+
+  const onSendFormatPrivate = (content: DataEnums[]) => {
     if (window.websocket && window.websocket.readyState === WebSocket.OPEN) {
       const UserKey = useUserHashKey({
         Platform: Platform,
         UserId: user.UserId
       });
-      const content = parseMessage({
-        Users: users,
-        Channels: channels,
-        input: message
-      });
+
       const MessageText =
         content.find(item => item.type === 'Text')?.value || '';
       // 发送私聊消息
@@ -514,14 +526,15 @@ export default function App() {
     ),
     group: (
       <GroupApp
-        value={value}
-        onInput={setValue}
+        // value={value}
+        // onInput={setValue}
         message={groupMessages}
         channels={channels}
         channel={channel}
         onSelect={setChannel}
         users={users}
         onSend={onSendPublic}
+        onSendFormat={onSendFormatPublic}
         onDelete={onDeleteGroup}
         user={user}
         commands={commands}
@@ -529,11 +542,12 @@ export default function App() {
     ),
     private: (
       <PrivateApp
-        value={value}
-        onInput={setValue}
+        // value={value}
+        // onInput={setValue}
         message={privateMessages}
         bot={bot}
         onSend={onSendPrivate}
+        onSendFormat={onSendFormatPrivate}
         onDelete={onDeletePrivate}
         user={user}
         commands={commands}

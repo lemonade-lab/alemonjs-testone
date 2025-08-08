@@ -1,9 +1,10 @@
 import { Channel, Command, MessageItem, User } from '@/frontend/typing';
-import MessageWondow from '@/frontend/component/MessageWindow';
+import MessageWindow from '@/frontend/component/MessageWindow';
 import Textarea from '@/frontend/component/Textarea';
 import MessageHeader from '@/frontend/component/MessageHeader';
 import { useState } from 'react';
 import CommandList from '../component/CommandList';
+import { DataEnums } from 'alemonjs';
 
 const ChannelSelect = ({
   channels,
@@ -38,9 +39,8 @@ const ChannelSelect = ({
 };
 
 export default function GroupApp({
-  value,
-  onInput,
   onSend,
+  onSendFormat,
   message,
   onDelete,
   onSelect,
@@ -50,10 +50,9 @@ export default function GroupApp({
   users,
   commands
 }: {
-  value: string;
-  onInput: (val: string) => void;
   message: MessageItem[];
   onSend: (message: string) => void;
+  onSendFormat: (format: DataEnums[]) => void;
   onDelete: (item: MessageItem) => void;
   onSelect: (channel: Channel) => void;
   channels: Channel[];
@@ -62,10 +61,30 @@ export default function GroupApp({
   users: User[];
   commands: Command[];
 }) {
+  console.log('GroupApp render');
+
+  // 输入框内容
+  const [value, onInput] = useState('');
+
   const [showCommands, setShowCommands] = useState(false);
 
   const handleCommandSelect = (command: Command) => {
-    onInput(command.text);
+    if (typeof command.autoEnter === 'boolean' && !command.autoEnter) {
+      // 不自动发送。
+      if (!command.data) {
+        onInput(command.text);
+        return;
+      }
+      onSendFormat(command.data);
+      return;
+    }
+    // 自动发送
+    if (!command.data) {
+      onSend(command.text);
+      return;
+    }
+    onSendFormat(command.data);
+    return;
   };
 
   return (
@@ -80,7 +99,7 @@ export default function GroupApp({
         <ChannelSelect channels={channels} onSelect={onSelect} />
       </MessageHeader>
       <div className="flex-1 flex overflow-auto">
-        <MessageWondow
+        <MessageWindow
           message={message}
           onDelete={onDelete}
           onSend={onSend}
