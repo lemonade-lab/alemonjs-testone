@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 const NODE_ENV = process.env.NODE_ENV === 'development';
 export default defineConfig({
+  // base: '/testone/',
   plugins: [react()],
   resolve: {
     alias: [

@@ -27,7 +27,7 @@ export default function MessageHeader({
         </div>
         <div className="flex flex-col justify-center">
           <div className="font-semibold ">{value.Name}</div>
-          <div className="text-sm text-[var(--vscode-textPreformat-background)]">
+          <div className="text-sm text-[var(--textPreformat-background)]">
             {value.Id}
           </div>
         </div>

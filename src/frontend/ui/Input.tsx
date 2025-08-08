@@ -10,11 +10,11 @@ export function Input(
     <input
       className={classNames(
         'px-2 py-1 rounded-md flex items-center justify-center',
-        'bg-[var(--vscode-input-background)]',
-        'hover:bg-[var(--vscode-input-hoverBackground)]',
+        'bg-[var(--input-background)]',
+        'hover:bg-[var(--input-hoverBackground)]',
         'rounded-md',
-        // 'bg-[var(--vscode-editor-background)]',
-        'border border-[var(--vscode-sidebar-border)] focus:border-[var(--vscode-button-background)]',
+        // 'bg-[var(--editor-background)]',
+        'border border-[var(--sidebar-border)] focus:border-[var(--button-background)]',
         className
       )}
       {...rest}

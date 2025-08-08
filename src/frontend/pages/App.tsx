@@ -555,7 +555,7 @@ export default function App() {
     )
   };
   return (
-    <div className="overflow-hidden flex flex-1 flex-col bg-[var(--vscode-sideBar-background)] ">
+    <div className="overflow-hidden flex flex-1 flex-col bg-[var(--sideBar-background)] ">
       {!!!window.vscode && <Header onClick={type => onGoTag(type)} />}
       {renderMap[tag]}
       {tag !== 'connect' && (

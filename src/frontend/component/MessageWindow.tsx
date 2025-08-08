@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef } from 'react';
 import MessageBubble from '@/frontend/component/MessageBubble';
 import { MessageItem } from '../typing';
+import classNames from 'classnames';
 
 // 定义类型
 type MessageWindowProps = {
@@ -25,9 +26,10 @@ const MessageRow = memo<MessageRowProps>(
     console.log('MessageRow 渲染，消息创建时间:', item.CreateAt);
     return (
       <div
-        className={`flex gap-2 ${
-          isOwnMessage ? 'ml-auto flex-row-reverse' : 'mr-auto'
-        }`}
+        className={classNames('flex gap-1', {
+          'ml-auto flex-row-reverse': isOwnMessage,
+          'mr-auto': !isOwnMessage
+        })}
       >
         {/* 用户头像 */}
         {item.UserAvatar ? (
@@ -51,13 +53,12 @@ const MessageRow = memo<MessageRowProps>(
         />
 
         {/* 删除按钮 */}
-        <div>
+        <div className="flex justify-end items-end">
           <div
             onClick={() => onDelete(item)}
-            className="select-none cursor-pointer flex justify-end items-end hover:bg-red-100 rounded px-2 py-1 transition-colors"
-            title="删除消息"
+            className="select-none cursor-pointer hover:bg-red-100 rounded px-1 transition-colors"
           >
-            <span className="text-red-500 text-sm">删除</span>
+            <span className="text-red-800 text-sm">del</span>
           </div>
         </div>
       </div>

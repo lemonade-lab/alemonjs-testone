@@ -24,7 +24,7 @@ const ChannelSelect = ({
             onSelect(selectedChannel);
           }
         }}
-        className="px-2 py-1 rounded-md bg-[var(--vscode-input-background)] hover:bg-[var(--vscode-activityBar-background)] text-[var(--vscode-input-foreground)]"
+        className="px-2 py-1 rounded-md bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)]"
       >
         {channels.map((item, index) => {
           return (

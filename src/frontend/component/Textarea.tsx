@@ -152,14 +152,14 @@ export default function Textarea({
             top: caretPos.top - userListHeight,
             zIndex: 1000
           }}
-          className="rounded-md fixed w-[9rem] max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--vscode-sidebar-border)] bg-[var(--vscode-editor-background)]"
+          className="rounded-md fixed w-[9rem] max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--sidebar-border)] bg-[var(--editor-background)]"
         >
           <div ref={selectRef} className="flex flex-col px-2 py-1">
             {userList.map(user => (
               <div
                 key={user.UserId}
                 onClick={() => handleUserSelection(user.UserName, user.UserId)}
-                className="rounded-md cursor-pointer p-1 hover:bg-[var(--vscode-activityBar-background)] text-sm"
+                className="rounded-md cursor-pointer p-1 hover:bg-[var(--activityBar-background)] text-sm"
               >
                 {user.UserName}
               </div>
@@ -169,7 +169,7 @@ export default function Textarea({
       )}
 
       {/* 主输入区域 */}
-      <div className="flex gap-2 flex-col border border-[var(--vscode-sidebar-border)] focus-within:border-[var(--vscode-button-background)] bg-[var(--vscode-editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
+      <div className="flex gap-2 flex-col border border-[var(--sidebar-border)] focus-within:border-[var(--button-background)] bg-[var(--editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
         {/* 工具栏 */}
         <div className="flex gap-2 shadow-inner rounded-md p-1">
           <div
@@ -183,7 +183,7 @@ export default function Textarea({
         {/* 输入框 */}
         <textarea
           ref={textareaRef}
-          className="min-h-20 px-1 resize-none max-h-64 border-0 focus:border-0 bg-opacity-0 bg-[var(--vscode-editor-background)] rounded-md outline-none"
+          className="min-h-20 px-1 resize-none max-h-64 border-0 focus:border-0 bg-opacity-0 bg-[var(--editor-background)] rounded-md outline-none"
           placeholder="输入内容..."
           value={textareaValue}
           onChange={onChange}
@@ -194,11 +194,11 @@ export default function Textarea({
 
         {/* 底部工具栏 */}
         <div className="flex flex-row justify-between ">
-          <div className="text-[var(--vscode-textPreformat-background)] text-sm">
+          <div className="text-[var(--textPreformat-background)] text-sm">
             Ctrl+Enter 换行
           </div>
           <div
-            className="border border-[var(--vscode-sidebar-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--vscode-button-background)] transition-colors"
+            className="border border-[var(--sidebar-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--button-background)] transition-colors"
             onClick={onClick}
           >
             <SendIcon />

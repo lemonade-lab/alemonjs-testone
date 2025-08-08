@@ -22,7 +22,7 @@ function MessageBubble({
 }: MessageBubble) {
   console.log('MessageBubble data');
   return (
-    <div className="rounded-md relative p-3 shadow-md bg-[var(--vscode-panel-background)]">
+    <div className="rounded-md relative p-3 shadow-md bg-[var(--panel-background)]">
       {
         // 消息是一个body。需要按格式解析
       }

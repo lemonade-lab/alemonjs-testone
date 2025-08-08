@@ -24,7 +24,7 @@ const ConnectItem = ({
 }) => {
   return (
     <div
-      className="w-full px-6 py-4 min-w-[35px] bg-[var(--vscode-editor-background)] rounded-lg flex flex-row justify-between items-center gap-4 transition-all hover:bg-[var(--vscode-editorGroupHeader-tabsBackground)] shadow cursor-pointer"
+      className="w-full px-6 py-4 min-w-[35px] bg-[var(--editor-background)] rounded-lg flex flex-row justify-between items-center gap-4 transition-all hover:bg-[var(--editorGroupHeader-tabsBackground)] shadow cursor-pointer"
       onClick={e => {
         e.stopPropagation();
         onClick && onClick();
@@ -71,7 +71,7 @@ const ConnectForm = ({
 }) => {
   return (
     <form
-      className="w-full flex flex-col gap-2 bg-[var(--vscode-editor-background)] rounded-lg p-4 shadow"
+      className="w-full flex flex-col gap-2 bg-[var(--editor-background)] rounded-lg p-4 shadow"
       onSubmit={onSubmit}
       style={{ minWidth: 320 }}
     >

@@ -51,9 +51,9 @@ export function Tooltip({
         <div
           className={classNames(
             'absolute z-10 px-2 py-1 text-sm rounded shadow-lg border',
-            'bg-[var(--vscode-editorWidget-background)]',
-            'text-[var(--vscode-editorWidget-foreground)]',
-            'border-[var(--vscode-editorWidget-border)]',
+            'bg-[var(--editorWidget-background)]',
+            'text-[var(--editorWidget-foreground)]',
+            'border-[var(--editorWidget-border)]',
             'max-w-xs break-words whitespace-normal', // 修复竖立问题
             placementStyle[placement],
             className

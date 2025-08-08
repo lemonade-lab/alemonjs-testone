@@ -5,15 +5,20 @@ import TagsOutlined from '@ant-design/icons/TagsOutlined';
 
 const Header = ({ onClick }: { onClick?: (type: PageTag) => void }) => {
   return (
-    <header className="flex gap-2 justify-end border-b p-4">
-      <div className="cursor-pointer" onClick={() => onClick?.('group')}>
-        <TagsOutlined />
+    <header className="flex justify-between border-b p-4">
+      <div>
+        <div>ALemonTestOne</div>
       </div>
-      <div className="cursor-pointer" onClick={() => onClick?.('private')}>
-        <TagOutlined />
-      </div>
-      <div className="cursor-pointer" onClick={() => onClick?.('connect')}>
-        <SyncOutlined />
+      <div className="flex gap-2 justify-end">
+        <div className="cursor-pointer" onClick={() => onClick?.('group')}>
+          <TagsOutlined />
+        </div>
+        <div className="cursor-pointer" onClick={() => onClick?.('private')}>
+          <TagOutlined />
+        </div>
+        <div className="cursor-pointer" onClick={() => onClick?.('connect')}>
+          <SyncOutlined />
+        </div>
       </div>
     </header>
   );
