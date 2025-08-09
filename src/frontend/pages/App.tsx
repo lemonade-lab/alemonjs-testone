@@ -480,7 +480,6 @@ export default function App() {
       ws.onerror = error => {
         console.error('WebSocket 错误:', error);
         setStatus(false);
-        Message.error('WebSocket 连接错误');
       };
 
       ws.onclose = event => {
