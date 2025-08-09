@@ -1,11 +1,11 @@
-import { PageTag } from '../typing';
+import { PageTag } from '@/frontend/typing';
 import SyncOutlined from '@ant-design/icons/SyncOutlined';
 import TagOutlined from '@ant-design/icons/TagOutlined';
 import TagsOutlined from '@ant-design/icons/TagsOutlined';
 
 const Header = ({ onClick }: { onClick?: (type: PageTag) => void }) => {
   return (
-    <header className="flex justify-between border-b p-4">
+    <header className="flex justify-between border-b border-[--panel-border] p-4">
       <div>
         <div>ALemonTestOne</div>
       </div>

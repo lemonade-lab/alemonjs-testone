@@ -1,4 +1,4 @@
-import { PageTag } from './typing';
+import { PageTag } from '@/frontend/typing';
 
 // 页面类型映射
 export const ACTIONS_MAP: {

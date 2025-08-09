@@ -4,10 +4,10 @@
  * @param position 光标位置
  * @returns 光标的 left、top 坐标
  */
-export function getCaretCoordinates(
+export const getCaretCoordinates = (
   textarea: HTMLTextAreaElement,
   position: number
-) {
+) => {
   // 创建一个隐藏的 div 来模拟 textarea 内容
   const div = document.createElement('div');
   const style = window.getComputedStyle(textarea);
@@ -41,4 +41,4 @@ export function getCaretCoordinates(
     left: rect.left + offsetLeft,
     top: rect.top + offsetTop
   };
-}
+};

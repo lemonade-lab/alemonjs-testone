@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import GroupApp from '@/frontend/pages/GroupApp';
-import PrivateApp from '@/frontend/pages/PrivateApp';
 import {
   Channel,
   Command,
@@ -19,11 +17,16 @@ import {
   PublicEventMessageCreate
 } from 'alemonjs';
 import * as flattedJSON from 'flatted';
-import { ACTIONS_MAP, initCommand } from '../config';
-import { initBot, initChannel, initConfig, initUser } from '../config';
-import { payloadToMentions, Platform, useUserHashKey } from '../core/alemon';
-import Header from './Header';
-import { parseMessage } from '../core/parse';
+import { ACTIONS_MAP, initCommand } from '@/frontend/config';
+import { initBot, initChannel, initConfig, initUser } from '@/frontend/config';
+import {
+  payloadToMentions,
+  Platform,
+  useUserHashKey
+} from '@/frontend/core/alemon';
+import Header from '@/frontend/pages/common/Header';
+import { parseMessage } from '@/frontend/core/parse';
+import ChatWindow from '@/frontend/pages/ChatWindow';
 /**
  *
  * @returns
@@ -525,9 +528,8 @@ export default function App() {
       />
     ),
     group: (
-      <GroupApp
-        // value={value}
-        // onInput={setValue}
+      <ChatWindow
+        pageType="public"
         message={groupMessages}
         channels={channels}
         channel={channel}
@@ -537,30 +539,34 @@ export default function App() {
         onSendFormat={onSendFormatPublic}
         onDelete={onDeleteGroup}
         user={user}
+        bot={bot}
         commands={commands}
       />
     ),
     private: (
-      <PrivateApp
-        // value={value}
-        // onInput={setValue}
-        message={privateMessages}
+      <ChatWindow
+        pageType="private"
+        channels={channels}
+        channel={channel}
+        onSelect={setChannel}
+        users={users}
+        user={user}
         bot={bot}
+        commands={commands}
+        message={privateMessages}
         onSend={onSendPrivate}
         onSendFormat={onSendFormatPrivate}
         onDelete={onDeletePrivate}
-        user={user}
-        commands={commands}
       />
     )
   };
   return (
-    <div className="overflow-hidden flex flex-1 flex-col bg-[var(--sideBar-background)] ">
+    <div className="overflow-hidden flex flex-1 flex-col bg-[var(--sideBar-background)] overflow-y-auto scrollbar">
       {!!!window.vscode && <Header onClick={type => onGoTag(type)} />}
       {renderMap[tag]}
       {tag !== 'connect' && (
-        <footer className="flex flex-row justify-between items-center px-4 select-none ">
-          [{config.host}][{config.port}][{status ? 'connet' : 'close'}]
+        <footer className="flex flex-row justify-between items-center px-4 py-1 select-none border-t border-[--panel-border]">
+          [{config.host}][{config.port}]
         </footer>
       )}
     </div>

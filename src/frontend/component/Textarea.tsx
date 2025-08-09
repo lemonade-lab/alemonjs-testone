@@ -152,7 +152,7 @@ export default function Textarea({
             top: caretPos.top - userListHeight,
             zIndex: 1000
           }}
-          className="rounded-md fixed w-[9rem] max-w-36 max-h-32 overflow-y-auto shadow-md border border-[var(--sidebar-border)] bg-[var(--editor-background)]"
+          className="rounded-md fixed w-[9rem] max-w-36 max-h-32 overflow-y-auto scrollbar shadow-md border border-[var(--sidebar-border)] bg-[var(--editor-background)]"
         >
           <div ref={selectRef} className="flex flex-col px-2 py-1">
             {userList.map(user => (
@@ -169,7 +169,7 @@ export default function Textarea({
       )}
 
       {/* 主输入区域 */}
-      <div className="flex gap-2 flex-col border border-[var(--sidebar-border)] focus-within:border-[var(--button-background)] bg-[var(--editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
+      <div className="flex gap-2 flex-col border border-[var(--editorWidget-border)] focus-within:border-[var(--button-background)] bg-[var(--editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
         {/* 工具栏 */}
         <div className="flex gap-2 shadow-inner rounded-md p-1">
           <div
@@ -198,7 +198,7 @@ export default function Textarea({
             Ctrl+Enter 换行
           </div>
           <div
-            className="border border-[var(--sidebar-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--button-background)] transition-colors"
+            className="border border-[var(--editorWidget-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--button-background)] transition-colors"
             onClick={onClick}
           >
             <SendIcon />

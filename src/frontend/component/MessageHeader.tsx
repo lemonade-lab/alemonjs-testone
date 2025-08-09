@@ -1,16 +1,15 @@
-import { PropsWithChildren } from 'react';
-export default function MessageHeader({
-  value,
-  children,
-  onClick
-}: {
+import { memo, PropsWithChildren } from 'react';
+
+type MessageHeaderProps = {
   value: {
     Avatar: string;
     Id: string;
     Name: string;
   };
   onClick?: () => void;
-} & PropsWithChildren) {
+} & PropsWithChildren;
+
+const MessageHeader = ({ value, children, onClick }: MessageHeaderProps) => {
   return (
     <section className="select-none flex flex-row justify-between items-center w-full shadow-md">
       <div className="flex flex-row gap-3 px-2 py-1">
@@ -35,4 +34,6 @@ export default function MessageHeader({
       <div>{children}</div>
     </section>
   );
-}
+};
+
+export default memo(MessageHeader);

@@ -8,10 +8,10 @@
     --editor-font-size: var(--vscode-editor-font-size, 12px);
 
     /* 主要背景色 */
-    --activityBar-background: var(--vscode-activityBar-background, #003847);
-    --editor-background: var(--vscode-editor-background, #002b36);
-    --editorGroupHeader-tabsBackground: var(--vscode-editorGroupHeader-tabsBackground, #004052);
-    --editorWidget-background: var(--vscode-editorWidget-background, #00212b);
+    --activityBar-background: var(--vscode-activityBar-background, #003847); /* main color #003847 */
+    --editor-background: var(--vscode-editor-background, #002b36); /* main color #002b36 */
+    --editorGroupHeader-tabsBackground: var(--vscode-editorGroupHeader-tabsBackground, #004052); /*  main color #004052 */
+    --editorWidget-background: var(--vscode-editorWidget-background, #00212b); /*  main color #00212b */
     --dropdown-background: var(--vscode-dropdown-background, #00212b);
     --input-background: var(--vscode-input-background, #003847);
     --panel-background: var(--vscode-panel-background, #002b36);
@@ -19,7 +19,7 @@
     --textPreformat-background: var(--vscode-textPreformat-background, rgba(255, 255, 255, 0.1));
     --statusBar-background: var(--vscode-statusBar-background, #00212b);
     --titleBar-background: var(--vscode-titleBar-activeBackground, #002c39);
-    --tab-activeBackground: var(--vscode-tab-activeBackground, #002b37);
+    --tab-activeBackground: var(--vscode-tab-activeBackground, #002b37); /*  main color #002b37 */
     --tab-inactiveBackground: var(--vscode-tab-inactiveBackground, #004052);
 
     /* 悬停背景色 */

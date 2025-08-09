@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useRef } from 'react';
 import MessageBubble from '@/frontend/component/MessageBubble';
-import { MessageItem } from '../typing';
+import { MessageItem } from '@/frontend/typing';
 import classNames from 'classnames';
 
 // 定义类型
@@ -21,8 +21,8 @@ type MessageRowProps = {
 };
 
 // 单个消息行组件
-const MessageRow = memo<MessageRowProps>(
-  ({ item, isOwnMessage, onDelete, onSend, onInput }) => {
+const MessageRow = memo(
+  ({ item, isOwnMessage, onDelete, onSend, onInput }: MessageRowProps) => {
     console.log('MessageRow 渲染，消息创建时间:', item.CreateAt);
     return (
       <div
@@ -123,7 +123,7 @@ function MessageWindow({
   // 如果没有消息，显示提示
   if (message.length === 0) {
     return (
-      <section className="flex-1 flex flex-col overflow-auto">
+      <section className="flex-1 flex flex-col overflow-y-auto scrollbar">
         <div className="flex-1 flex items-center justify-center text-gray-500">
           <p>暂无消息，开始聊天吧！</p>
         </div>
@@ -134,7 +134,7 @@ function MessageWindow({
   return (
     <section
       ref={MessageWindowRef}
-      className="flex-1 flex flex-col overflow-auto"
+      className="flex-1 flex flex-col overflow-y-auto scrollbar"
     >
       <section className="flex-1 px-3 py-2 flex gap-4 flex-col">
         {message.map(item => (
