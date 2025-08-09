@@ -18,7 +18,6 @@ export const initConfig = {
 
 // 默认机器人账号
 export const initBot = {
-  id: 0,
   UserId: '794161769',
   UserAvatar: 'https://q.qlogo.cn/headimg_dl?dst_uin=794161769&spec=100',
   UserName: '阿柠檬',
@@ -29,21 +28,19 @@ export const initBot = {
 
 // 默认用户账号
 export const initUser = {
-  id: 1,
   UserId: '1715713638',
   UserAvatar: 'https://q.qlogo.cn/headimg_dl?dst_uin=1715713638&spec=100',
-  UserName: '我自己',
+  UserName: '柠檬冲水',
   OpenId: '1715713638',
   IsMaster: true,
   IsBot: false
 };
 
 export const initChannel = {
-  id: 1,
-  GuildId: '1012967625',
-  ChannelId: '1012967625',
-  ChannelName: '机器人交流群',
-  ChannelAvatar: 'https://alemonjs.com/img/alemon.png'
+  GuildId: '806943302',
+  ChannelId: '806943302',
+  ChannelName: '文游社',
+  ChannelAvatar: 'https://p.qlogo.cn/gh/806943302/806943302/'
 };
 
 export const initCommand = {

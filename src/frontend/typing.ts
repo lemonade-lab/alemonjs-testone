@@ -7,6 +7,8 @@ export type Channel = {
   ChannelName: string;
 };
 
+export type Channels = Channel[];
+
 export type Connect = {
   host: string;
   port: number;
@@ -17,10 +19,12 @@ export type User = {
   UserId: string;
   UserName: string;
   UserAvatar: string;
-  OpenId?: string; // 可选属性
+  OpenId?: string;
   IsMaster: boolean;
   IsBot: boolean;
 };
+
+export const Users: User[] = [];
 
 export type PageTag = 'connect' | 'group' | 'private';
 
@@ -39,3 +43,4 @@ export type Command = {
   autoEnter?: boolean;
   data?: DataEnums[];
 };
+export type Commands = Command[];

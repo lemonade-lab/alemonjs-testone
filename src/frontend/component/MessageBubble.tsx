@@ -2,10 +2,9 @@ import dayjs from 'dayjs';
 import { Buffer } from 'buffer';
 import { Button } from '@/frontend/ui/Button';
 import { type DataEnums } from 'alemonjs';
-import Zoom from 'react-medium-image-zoom';
-import 'react-medium-image-zoom/dist/styles.css';
 import '@/frontend/component/MessageBubble.scss';
 import { memo, useMemo, useCallback } from 'react';
+import Zoom from 'antd/es/Image';
 
 type MessageBubble = {
   data: DataEnums[];
@@ -70,14 +69,12 @@ const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
     const h = mdItem.options?.height || '100';
     const url = mdItem.value;
     return url ? (
-      <Zoom classDialog="my-transparent-dialog">
-        <img
-          style={{ width: `${w}px`, height: `${h}px` }}
-          className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-          src={url}
-          alt="Image"
-        />
-      </Zoom>
+      <Zoom
+        style={{ width: `${w}px`, height: `${h}px` }}
+        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+        src={url}
+        alt="Image"
+      />
     ) : null;
   },
   'MD.italic': mdItem => <em>{mdItem.value}</em>,
@@ -122,13 +119,11 @@ const renderImage = (item: any): React.ReactNode => {
   const base64String = data.toString('base64');
   const url = `data:image/png;base64,${base64String}`;
   return (
-    <Zoom classDialog="my-transparent-dialog">
-      <img
-        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-        src={url}
-        alt="Image"
-      />
-    </Zoom>
+    <Zoom
+      className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+      src={url}
+      alt="Image"
+    />
   );
 };
 
@@ -136,13 +131,11 @@ const renderImage = (item: any): React.ReactNode => {
 const renderImageURL = (item: any): React.ReactNode => {
   const url = item.value as string;
   return url ? (
-    <Zoom classDialog="my-transparent-dialog">
-      <img
-        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-        src={url}
-        alt="ImageURL"
-      />
-    </Zoom>
+    <Zoom
+      className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+      src={url}
+      alt="ImageURL"
+    />
   ) : null;
 };
 
