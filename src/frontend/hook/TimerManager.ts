@@ -149,7 +149,9 @@ export const useTimerManager = (): UseTimerManagerReturn => {
         const timerId = setInterval(() => {
           try {
             const currentStatus = statusRef.current.get(taskId);
-            if (!currentStatus) return;
+            if (!currentStatus) {
+              return;
+            }
 
             // 检查最大执行次数
             if (

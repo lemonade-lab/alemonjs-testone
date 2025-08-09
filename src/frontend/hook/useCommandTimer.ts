@@ -103,7 +103,9 @@ export default function useCommandTimer(
 
   const getCurrentCommandIndex = useCallback(() => {
     const first = getCommandTasks()[0];
-    if (!first) return 0;
+    if (!first) {
+      return 0;
+    }
     return commandIndexRef.current[first.id] || 0;
   }, [getCommandTasks]);
 
@@ -186,7 +188,9 @@ export default function useCommandTimer(
       }
 
       let startIndex = Math.floor(timerConfig.startIndex ?? 0);
-      if (startIndex < 0) startIndex = 0;
+      if (startIndex < 0) {
+        startIndex = 0;
+      }
       if (startIndex >= commands.length) {
         Message.warning('起始索引超出范围，已重置为 0');
         startIndex = 0;
