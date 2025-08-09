@@ -133,14 +133,9 @@ export default function Textarea({
     updateCaretPosition();
   }, [updateCaretPosition]);
 
-  const onClick = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
-      e.stopPropagation();
-      e.preventDefault();
-      await onSend();
-    },
-    [onSend]
-  );
+  const onClick = useCallback(async () => {
+    await onSend();
+  }, [onSend]);
 
   return (
     <section className="select-none w-full flex flex-row justify-center px-4 py-1">
@@ -158,7 +153,11 @@ export default function Textarea({
             {userList.map(user => (
               <div
                 key={user.UserId}
-                onClick={() => handleUserSelection(user.UserName, user.UserId)}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleUserSelection(user.UserName, user.UserId);
+                }}
                 className="rounded-md cursor-pointer p-1 hover:bg-[var(--activityBar-background)] text-sm"
               >
                 {user.UserName}
@@ -174,7 +173,11 @@ export default function Textarea({
         <div className="flex gap-2 shadow-inner rounded-md p-1">
           <div
             className="cursor-pointer"
-            onClick={() => onAppClick?.('commands')}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              onAppClick?.('commands');
+            }}
           >
             <RobotOutlined />
           </div>
@@ -199,7 +202,11 @@ export default function Textarea({
           </div>
           <div
             className="border border-[var(--editorWidget-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--button-background)] transition-colors"
-            onClick={onClick}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              onClick();
+            }}
           >
             <SendIcon />
           </div>

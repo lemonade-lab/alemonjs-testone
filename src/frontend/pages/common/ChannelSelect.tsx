@@ -9,7 +9,7 @@ const ChannelSelect = ({
   onSelect: (channel: Channel) => void;
 }) => {
   return (
-    <div className="px-4  flex flex-row items-center  ">
+    <div className="flex flex-row items-center">
       <select
         onChange={e => {
           const selectedChannel = channels.find(
@@ -21,13 +21,14 @@ const ChannelSelect = ({
         }}
         className="px-2 py-1 rounded-md bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)]"
       >
-        {channels.map((item, index) => {
-          return (
-            <option key={index} value={item.ChannelId}>
-              {item.ChannelId}
-            </option>
-          );
-        })}
+        {Array.isArray(channels) &&
+          channels.map((item, index) => {
+            return (
+              <option key={index} value={item.ChannelId}>
+                {item.ChannelId}
+              </option>
+            );
+          })}
       </select>
     </div>
   );

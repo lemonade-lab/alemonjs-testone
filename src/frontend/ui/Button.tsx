@@ -5,7 +5,7 @@ export function Button(
     HTMLButtonElement
   >
 ) {
-  const { className, ...rest } = props;
+  const { className, onClick, ...rest } = props;
   return (
     <button
       type="button"
@@ -17,6 +17,10 @@ export function Button(
         'rounded-md',
         className
       )}
+      onClick={e => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       {...rest}
     />
   );

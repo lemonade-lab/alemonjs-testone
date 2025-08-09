@@ -64,6 +64,7 @@
     "url": "https://github.com/lemonade-lab/alemontestone.git"
   },
   "dependencies": {
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "buffer": "^6.0.3"
   },
   "engines": {

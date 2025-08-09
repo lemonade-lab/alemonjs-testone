@@ -68,6 +68,9 @@ const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
     const w = mdItem.options?.width || '100';
     const h = mdItem.options?.height || '100';
     const url = mdItem.value;
+    if (!/^http(s)?:\/\//.test(url)) {
+      return null; // 如果不是有效的URL则不渲染
+    }
     return url ? (
       <Zoom
         style={{ width: `${w}px`, height: `${h}px` }}
@@ -85,16 +88,17 @@ const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
     const listItem = mdItem.value;
     return (
       <div className="list-disc">
-        {listItem.map((li: any, liIndex: number) => {
-          if (typeof li.value === 'string') {
-            return <li key={liIndex}>{li.value}</li>;
-          }
-          return (
-            <div key={liIndex}>
-              {li.value.index}.{li.value.text}
-            </div>
-          );
-        })}
+        {Array.isArray(listItem) &&
+          listItem.map((li: any, liIndex: number) => {
+            if (typeof li.value === 'string') {
+              return <li key={liIndex}>{li.value}</li>;
+            }
+            return (
+              <div key={liIndex}>
+                {li.value.index}.{li.value.text}
+              </div>
+            );
+          })}
       </div>
     );
   },
@@ -130,6 +134,12 @@ const renderImage = (item: any): React.ReactNode => {
 // 渲染URL图片组件
 const renderImageURL = (item: any): React.ReactNode => {
   const url = item.value as string;
+  // 查看是什么。https:// 正常渲染
+  // 如果是 base64:// 则进行处理
+  if (url.startsWith('base64://')) {
+    const base64Data = url.replace('base64://', '');
+    return renderImage({ value: base64Data });
+  }
   return url ? (
     <Zoom
       className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
@@ -141,9 +151,11 @@ const renderImageURL = (item: any): React.ReactNode => {
 
 // 渲染文本组件
 const renderText = (item: any): React.ReactNode => {
-  const value = item.value as string;
+  let value = item.value as string;
   if (!value) return null;
-
+  if (typeof value !== 'string') {
+    value = String(value);
+  }
   const textContent = value.includes('\n')
     ? value.split('\n').map((line: string, index: number) => (
         <span key={index}>
@@ -152,10 +164,8 @@ const renderText = (item: any): React.ReactNode => {
         </span>
       ))
     : value;
-
   const style = item.options?.style || 'default';
   const styleRenderer = TEXT_STYLES[style] || TEXT_STYLES.default;
-
   return <span>{styleRenderer(textContent)}</span>;
 };
 
@@ -221,7 +231,9 @@ const renderButtonGroup = (
               return (
                 <Button
                   key={btIdx}
-                  onClick={() => {
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     if (autoEnter) {
                       onSend(data?.click || '');
                     } else {

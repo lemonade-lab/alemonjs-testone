@@ -13,7 +13,14 @@ const MessageHeader = ({ value, children, onClick }: MessageHeaderProps) => {
   return (
     <section className="select-none flex flex-row justify-between items-center w-full shadow-md">
       <div className="flex flex-row gap-3 px-2 py-1">
-        <div className="flex items-center" onClick={onClick}>
+        <div
+          className="flex items-center"
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            onClick?.();
+          }}
+        >
           {value.Avatar ? (
             <img
               className="w-10 h-10 rounded-full"

@@ -55,7 +55,11 @@ const MessageRow = memo(
         {/* 删除按钮 */}
         <div className="flex justify-end items-end">
           <div
-            onClick={() => onDelete(item)}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              onDelete(item);
+            }}
             className="select-none cursor-pointer hover:bg-red-100 rounded px-1 transition-colors"
           >
             <span className="text-red-800 text-sm">del</span>

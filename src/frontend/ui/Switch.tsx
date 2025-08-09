@@ -50,7 +50,11 @@ export const Switch = ({
         className={classNames(
           'w-12 h-6 rounded-full flex items-center cursor-pointer transition-all duration-300 border'
         )}
-        onClick={handleToggle}
+        onClick={e => {
+          e.stopPropagation();
+          e.preventDefault();
+          handleToggle();
+        }}
       >
         <div
           className={classNames(
