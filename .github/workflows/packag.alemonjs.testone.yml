@@ -1,4 +1,4 @@
-name: github阅览
+name: 官网阅览
 
 on:
   push:
@@ -30,13 +30,9 @@ jobs:
         run: yarn install --ignore-engines
 
       - name: build
-        run: yarn build --base /alemonjs-testone/
+        run: yarn build --base /testone/
 
-      # - name: prepare docs
-      #   run: |
-      #     echo 'testone.dev' > dist-testone/CNAME
-
-      - name: push docs
+      - name: push testone
         run: |
           cd dist-testone/
           git init
@@ -45,4 +41,4 @@ jobs:
           git add -A
           git commit -m "自动打包 - ${{ env.BEIJING_TIME }}"
           git remote add github https://lemonade-lab:${{ secrets.GH_TOKEN }}@github.com/lemonade-lab/alemonjs-testone.git
-          git push github HEAD:docs -f
+          git push github HEAD:testone -f
