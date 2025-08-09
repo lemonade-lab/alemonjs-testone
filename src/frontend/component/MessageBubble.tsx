@@ -4,7 +4,7 @@ import { Button } from '@/frontend/ui/Button';
 import { type DataEnums } from 'alemonjs';
 import '@/frontend/component/MessageBubble.scss';
 import { memo, useMemo, useCallback } from 'react';
-import Zoom from 'antd/es/Image';
+import { Image as Zoom } from 'antd';
 
 type MessageBubble = {
   data: DataEnums[];
