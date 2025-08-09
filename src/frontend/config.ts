@@ -1,8 +1,8 @@
-import { PageTag } from '@/frontend/typing';
+import { PageTab } from '@/frontend/typing';
 
 // 页面类型映射
 export const ACTIONS_MAP: {
-  [key: string]: PageTag;
+  [key: string]: PageTab;
 } = {
   'ALemonTestOne.openGroup': 'group',
   'ALemonTestOne.openPrivate': 'private',
@@ -10,7 +10,7 @@ export const ACTIONS_MAP: {
 };
 
 // 默认连接配置
-export const initConfig = {
+export const initConnect = {
   name: '默认连接',
   host: '127.0.0.1',
   port: 17117

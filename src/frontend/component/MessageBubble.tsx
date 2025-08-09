@@ -2,9 +2,9 @@ import dayjs from 'dayjs';
 import { Buffer } from 'buffer';
 import { Button } from '@/frontend/ui/Button';
 import { type DataEnums } from 'alemonjs';
-import '@/frontend/component/MessageBubble.scss';
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo } from 'react';
 import { Image as Zoom } from 'antd';
+import '@/frontend/component/MessageBubble.scss';
 
 type MessageBubble = {
   data: DataEnums[];
@@ -293,20 +293,19 @@ const MessageBubble = ({
   onSend = () => {},
   onInput = () => {}
 }: MessageBubble) => {
-  // 使用 useCallback 优化回调函数
-  const handleSend = useCallback(
-    (value: string) => {
-      onSend(value);
-    },
-    [onSend]
-  );
+  /**
+   * @param value
+   */
+  const handleSend = (value: string) => {
+    onSend(value);
+  };
 
-  const handleInput = useCallback(
-    (value: string) => {
-      onInput(value);
-    },
-    [onInput]
-  );
+  /**
+   * @param value
+   */
+  const handleInput = (value: string) => {
+    onInput(value);
+  };
 
   // 格式化时间戳
   const formattedTime = useMemo(() => {
@@ -337,8 +336,6 @@ const MessageBubble = ({
       return <div key={index}>{renderer(item)}</div>;
     });
   }, [data, handleSend, handleInput]);
-
-  console.log('MessageBubble data');
 
   return (
     <div className="flex items-end">

@@ -4,12 +4,14 @@ import { User } from '@/frontend/typing';
 import RobotOutlined from '@ant-design/icons/RobotOutlined';
 import { getCaretCoordinates } from '@/frontend/component/caretCoordin';
 
+import ClearOutlined from '@ant-design/icons/ClearOutlined';
+
 interface TextareaProps extends React.HTMLAttributes<HTMLTextAreaElement> {
   value: string;
   onContentChange?: (content: string) => void;
   onClickSend: () => void;
   userList?: User[];
-  onAppClick?: (action: 'commands') => void;
+  onAppClick?: (action: 'commands' | 'clear') => void;
 }
 
 export default function Textarea({
@@ -170,16 +172,34 @@ export default function Textarea({
       {/* 主输入区域 */}
       <div className="flex gap-2 flex-col border border-[var(--editorWidget-border)] focus-within:border-[var(--button-background)] bg-[var(--editor-background)] border-opacity-70 shadow-inner rounded-md w-full p-1">
         {/* 工具栏 */}
-        <div className="flex gap-2 shadow-inner rounded-md p-1">
-          <div
-            className="cursor-pointer"
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-              onAppClick?.('commands');
-            }}
-          >
-            <RobotOutlined />
+        <div className="flex justify-between gap-2 shadow-inner rounded-md p-1">
+          <div>
+            <div
+              className="cursor-pointer flex gap-2 border rounded-md px-2  border-[var(--editorWidget-border)]"
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                onAppClick?.('commands');
+              }}
+            >
+              <RobotOutlined />
+              指令管理
+            </div>
+          </div>
+
+          <div>
+            <div
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                onAppClick?.('clear');
+              }}
+              className="cursor-pointer flex gap-2 border rounded-md px-2  border-[var(--editorWidget-border)]"
+              title="清空消息"
+            >
+              <ClearOutlined />
+              聊天记录
+            </div>
           </div>
         </div>
 
@@ -201,7 +221,7 @@ export default function Textarea({
             Ctrl+Enter 换行
           </div>
           <div
-            className="border border-[var(--editorWidget-border)] border-opacity-70 px-3 cursor-pointer rounded-md flex items-center justify-center hover:bg-[var(--button-background)] transition-colors"
+            className="cursor-pointer"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

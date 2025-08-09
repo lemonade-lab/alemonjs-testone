@@ -11,7 +11,7 @@ type MessageHeaderProps = {
 
 const MessageHeader = ({ value, children, onClick }: MessageHeaderProps) => {
   return (
-    <section className="select-none flex flex-row justify-between items-center w-full shadow-md">
+    <section className="relative select-none flex flex-row justify-between items-center w-full shadow-md">
       <div className="flex flex-row gap-3 px-2 py-1">
         <div
           className="flex items-center"

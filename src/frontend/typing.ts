@@ -26,7 +26,7 @@ export type User = {
 
 export const Users: User[] = [];
 
-export type PageTag = 'connect' | 'group' | 'private';
+export type PageTab = 'connect' | 'group' | 'private';
 
 export type MessageItem = {
   UserId: string;

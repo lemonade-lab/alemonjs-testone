@@ -42,5 +42,17 @@ export const Message = {
         text: text
       }
     });
+  },
+  warning: (text: string) => {
+    if (!window.vscode) {
+      message.warning(text, 8);
+      return;
+    }
+    window.vscode.postMessage({
+      type: 'window.showInformationMessage',
+      payload: {
+        text: text
+      }
+    });
   }
 };

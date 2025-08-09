@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "@ant-design/icons": "^6.0.0",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@reduxjs/toolkit": "^2.8.2",
     "@types/crypto-js": "^4.2.2",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "20.x",
@@ -41,6 +43,7 @@
     "animate.css": "^4.1.1",
     "antd": "^5.26.7",
     "autoprefixer": "^10.4.19",
+    "buffer": "^6.0.3",
     "classnames": "^2.5.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
@@ -52,6 +55,7 @@
     "prettier": "^3.3.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-redux": "^9.2.0",
     "sass": "^1.75.0",
     "tailwindcss": "^3.4.3",
     "terser": "^5.30.4",
@@ -62,10 +66,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/lemonade-lab/alemontestone.git"
-  },
-  "dependencies": {
-    "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "buffer": "^6.0.3"
   },
   "engines": {
     "vscode": "^1.96.0"
