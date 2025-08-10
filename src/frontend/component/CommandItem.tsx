@@ -16,7 +16,7 @@ const CommandItem = memo(
           e.preventDefault();
           onCommandSelect(command);
         }}
-        className="flex items-center p-2 rounded hover:bg-[var(--list-hoverBackground)] cursor-pointer"
+        className="command-item flex items-center p-2 rounded hover:bg-[var(--list-hoverBackground)] cursor-pointer animate__animated animate__fadeInUp hover-lift"
       >
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-[var(--foreground)] truncate">

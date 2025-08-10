@@ -2,15 +2,18 @@ import { Channel } from '@/frontend/typing';
 import { memo } from 'react';
 
 const ChannelSelect = ({
+  value,
   channels,
   onSelect
 }: {
+  value: string;
   channels: Channel[];
   onSelect: (channel: Channel) => void;
 }) => {
   return (
     <div className="flex flex-row items-center">
       <select
+        value={value}
         onChange={e => {
           const selectedChannel = channels.find(
             item => item.ChannelId === e.target.value

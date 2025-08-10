@@ -3,7 +3,7 @@
   "displayName": "ALemonTestOne",
   "publisher": "lemonadex",
   "description": "阿柠檬沙盒环境",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "scripts": {
     "dev": "vite",
     "bundle": "tsc && NODE_ENV='development' vite build",

@@ -4,14 +4,17 @@ import { User } from '@/frontend/typing';
 import RobotOutlined from '@ant-design/icons/RobotOutlined';
 import { getCaretCoordinates } from '@/frontend/component/caretCoordin';
 
-import ClearOutlined from '@ant-design/icons/ClearOutlined';
+// import ClearOutlined from '@ant-design/icons/ClearOutlined';
+import ProfileOutlined from '@ant-design/icons/ProfileOutlined';
+
+export type Actions = 'commands' | 'clear' | 'chatlogs';
 
 interface TextareaProps extends React.HTMLAttributes<HTMLTextAreaElement> {
   value: string;
   onContentChange?: (content: string) => void;
   onClickSend: () => void;
   userList?: User[];
-  onAppClick?: (action: 'commands' | 'clear') => void;
+  onAppClick?: (action: Actions) => void;
 }
 
 export default function Textarea({
@@ -106,7 +109,6 @@ export default function Textarea({
   const onChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
-      console.log('输入内容:', newValue);
       setTextareaValue(newValue);
 
       setTimeout(() => {
@@ -122,7 +124,6 @@ export default function Textarea({
         setTextareaValue(prev => prev + '\n');
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        console.log('按下回车发送');
         await onSend();
       } else if (e.key === 'Escape' && showUserList) {
         setShowUserList(false);
@@ -192,12 +193,12 @@ export default function Textarea({
               onClick={e => {
                 e.stopPropagation();
                 e.preventDefault();
-                onAppClick?.('clear');
+                onAppClick?.('chatlogs');
               }}
               className="cursor-pointer flex gap-2 border rounded-md px-2  border-[var(--editorWidget-border)]"
               title="清空消息"
             >
-              <ClearOutlined />
+              <ProfileOutlined />
               聊天记录
             </div>
           </div>

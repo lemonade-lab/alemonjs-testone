@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { Connect } from '@/frontend/typing';
 import { Button } from '@/frontend/ui/Button';
 import { saveConnect } from '@/frontend/core/connect';
@@ -11,7 +11,8 @@ import { useAppDispatch, useAppSelector } from '@/frontend/store';
 import {
   wsCancel,
   wsConnectRequest,
-  wsSetAllowRestart
+  wsSetAllowRestart,
+  wsSetPersistent
 } from '@/frontend/store/slices/socketSlice';
 import {
   addConnect,
@@ -35,7 +36,9 @@ const domainPattern = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
 
 const ConnectList = () => {
   const dispatch = useAppDispatch();
-  const { isConnecting: connecting } = useAppSelector(s => s.socket);
+  const { isConnecting, isRestarting, connected, autoConnectEnabled } =
+    useAppSelector(s => s.socket);
+  const connecting = isConnecting || isRestarting; // 统一 loading 判定
   const connectList = useAppSelector(s => s.connect.list);
   const value = connectList;
   const onCancel = () => dispatch(wsCancel());
@@ -44,8 +47,13 @@ const ConnectList = () => {
   const onDel = (c: Connect) => dispatch(deleteConnect(c.name));
 
   const onOk = useCallback(
-    (c: { host: string; port: number; name: string }) => {
+    (
+      c: { host: string; port: number; name: string },
+      options?: { persistent?: boolean }
+    ) => {
       dispatch(wsSetAllowRestart(true));
+      // 用户手动点击才开启持久重连
+      dispatch(wsSetPersistent(!!options?.persistent));
       dispatch(wsConnectRequest(c));
       dispatch(bumpToTop(c.name));
     },
@@ -54,6 +62,9 @@ const ConnectList = () => {
 
   const [formType, setFormType] = useState<FormMode>('');
   const [formData, setFormData] = useState<Connect>(defaultForm);
+  // 用户是否有交互（点击、打开表单等）
+  const [userInteracted, setUserInteracted] = useState(false);
+  const autoTriedRef = useRef(false);
 
   // 处理新增表单提交
   const onSubmit = _.debounce(() => {
@@ -118,8 +129,9 @@ const ConnectList = () => {
               <ConnectItem
                 key={idx}
                 onClick={() => {
+                  setUserInteracted(true);
                   // 点击连接
-                  onOk?.(item);
+                  onOk?.(item, { persistent: true });
                   // 把连接的。排序。放到最前面
                   const newList = value.filter(
                     connect => connect.name !== item.name
@@ -128,6 +140,7 @@ const ConnectList = () => {
                 }}
                 item={item}
                 onDelete={() => {
+                  setUserInteracted(true);
                   onDel?.(item);
                   const newList = value.filter(
                     connect => connect.name !== item.name
@@ -136,13 +149,19 @@ const ConnectList = () => {
                   saveConnect(newList, '删除成功');
                 }}
                 onEdit={() => {
+                  setUserInteracted(true);
                   setFormData(item);
                   setFormType('edit');
                 }}
               />
             ))}
           {formType == '' ? (
-            <ConnectItem onClick={() => setFormType('add')}>
+            <ConnectItem
+              onClick={() => {
+                setUserInteracted(true);
+                setFormType('add');
+              }}
+            >
               + 添加新连接
             </ConnectItem>
           ) : (
@@ -151,9 +170,11 @@ const ConnectList = () => {
               formData={formData}
               setFormData={setFormData}
               onClose={() => {
+                setUserInteracted(true);
                 setFormType('');
               }}
               onSubmit={e => {
+                setUserInteracted(true);
                 e.preventDefault();
                 onSubmit();
               }}
@@ -161,8 +182,48 @@ const ConnectList = () => {
           )}
         </div>
       )}
+      {/* 自动连接逻辑：组件挂载后 1s 内没有任何交互且存在连接项则自动连接第一个 */}
+      <AutoConnectHelper
+        shouldAttempt={
+          autoConnectEnabled &&
+          !userInteracted &&
+          !autoTriedRef.current &&
+          !connecting &&
+          !connected
+        }
+        hasItem={value.length > 0}
+        onTrigger={() => {
+          if (!value.length) return;
+          autoTriedRef.current = true;
+          // 自动触发不启用持久重连
+          onOk?.(value[0], { persistent: false });
+          // 保持排序一致
+          const newList = value.slice(1);
+          saveConnect([value[0], ...newList], '');
+        }}
+      />
     </div>
   );
+};
+
+// 分离出一个组件以便使用 hooks，不干扰上面逻辑
+const AutoConnectHelper = ({
+  shouldAttempt,
+  hasItem,
+  onTrigger
+}: {
+  shouldAttempt: boolean;
+  hasItem: boolean;
+  onTrigger: () => void;
+}) => {
+  useEffect(() => {
+    if (!shouldAttempt || !hasItem) return;
+    const timer = setTimeout(() => {
+      onTrigger();
+    }, 1000); // 1s 无操作自动连接
+    return () => clearTimeout(timer);
+  }, [shouldAttempt, hasItem, onTrigger]);
+  return null;
 };
 
 export default ConnectList;

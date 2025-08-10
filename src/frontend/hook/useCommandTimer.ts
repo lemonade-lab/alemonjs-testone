@@ -6,15 +6,17 @@ import useTimerManager from '@/frontend/hook/TimerManager';
 export interface TimerConfig {
   time: number;
   startIndex: number;
+  endIndex?: number; // 结束指令索引（包含）。缺省表示最后一条
   user?: User;
   channel?: Channel;
+  loop?: boolean; // 是否循环执行（默认 true）
 }
 
 interface UseCommandTimerParams {
   commands: Command[];
   status: boolean;
   pageType: 'public' | 'private';
-  handleCommand: (
+  onCommand: (
     command: Command,
     ctx?: {
       curchannel?: Channel;
@@ -23,15 +25,11 @@ interface UseCommandTimerParams {
   ) => void;
   requireTarget?: boolean;
   requireBothUserAndChannel?: boolean;
+  onClose: () => void;
+  onStart: () => void;
 }
 
 interface UseCommandTimerResult {
-  open: boolean;
-  setOpen: (v: boolean) => void;
-
-  showStopAllConfirm: boolean;
-  setShowStopAllConfirm: (v: boolean) => void;
-
   taskToDelete: any | null;
   setTaskToDelete: (t: any | null) => void;
 
@@ -42,7 +40,6 @@ interface UseCommandTimerResult {
     e: React.FormEvent,
     payload: { user?: User; channel?: Channel }
   ) => void;
-  onTimer: () => void;
 
   stopAllCommandTasks: () => void;
   deleteSingleTask: (taskId: string) => void;
@@ -60,20 +57,22 @@ export default function useCommandTimer(
     commands,
     status,
     pageType,
-    handleCommand,
+    onCommand,
     requireTarget = true,
-    requireBothUserAndChannel = false
+    requireBothUserAndChannel = false,
+    onStart,
+    onClose
   } = params;
 
   const timerManager = useTimerManager();
 
-  const [open, setOpen] = useState(false);
-  const [showStopAllConfirm, setShowStopAllConfirm] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
 
   const [timerConfig, setTimerConfig] = useState<TimerConfig>({
     time: 1.2,
-    startIndex: 0
+    startIndex: 0,
+    endIndex: undefined,
+    loop: true
   });
 
   // 每个任务独立的当前指令索引
@@ -114,26 +113,48 @@ export default function useCommandTimer(
     (
       taskId: string,
       startIndex: number,
+      endIndex: number | undefined,
+      loop: boolean,
       snapshotUser?: User,
       snapshotChannel?: Channel
     ) => {
-      commandIndexRef.current[taskId] = startIndex;
+      // 规范化区间
+      const realStart = Math.max(0, Math.min(startIndex, commands.length - 1));
+      let realEnd =
+        typeof endIndex === 'number'
+          ? Math.max(realStart, Math.min(endIndex, commands.length - 1))
+          : commands.length - 1;
+      const segmentLength = realEnd - realStart + 1;
+      commandIndexRef.current[taskId] = realStart; // 原始递增指针（不回绕）
+      const execCountRef: { current: number } = { current: 0 }; // 已执行次数
+
       return () => {
         if (!status) {
           Message.info('连接已断开，停止任务');
           timerManager.stopTask(taskId);
           return;
         }
-        if (commands.length === 0) {
+        if (commands.length === 0 || segmentLength <= 0) {
           Message.warning('没有可用的指令，任务终止');
           timerManager.stopTask(taskId);
           return;
         }
-        const currentIndex = commandIndexRef.current[taskId] % commands.length;
+
+        if (!loop && execCountRef.current >= segmentLength) {
+          Message.success('单轮执行完成，任务自动停止');
+          timerManager.stopTask(taskId);
+          return;
+        }
+
+        const raw = commandIndexRef.current[taskId];
+        const offset = (raw - realStart) % segmentLength; // 在区间内偏移
+        const currentIndex =
+          realStart + (offset < 0 ? offset + segmentLength : offset);
         const command = commands[currentIndex];
+
         if (command) {
           try {
-            handleCommand(command, {
+            onCommand(command, {
               curchannel: snapshotChannel,
               curuser: snapshotUser
             });
@@ -141,11 +162,15 @@ export default function useCommandTimer(
             console.error('执行指令出错:', err);
             Message.error('执行指令时发生错误');
           }
-          commandIndexRef.current[taskId] = commandIndexRef.current[taskId] + 1;
+          commandIndexRef.current[taskId] = raw + 1; // 推进原始指针
+          execCountRef.current++;
+          if (!loop && execCountRef.current >= segmentLength) {
+            Message.info('已完成全部指令，即将自动停止');
+          }
         }
       };
     },
-    [status, commands, handleCommand, timerManager]
+    [status, commands, onCommand, timerManager]
   );
 
   // 创建 & 启动一个新的循环任务
@@ -196,6 +221,17 @@ export default function useCommandTimer(
         startIndex = 0;
       }
 
+      let endIndex =
+        typeof timerConfig.endIndex === 'number'
+          ? Math.floor(timerConfig.endIndex)
+          : commands.length - 1;
+      if (endIndex < startIndex) {
+        endIndex = startIndex;
+      }
+      if (endIndex >= commands.length) {
+        endIndex = commands.length - 1;
+      }
+
       try {
         const snapshotUser = mergedUser;
         const snapshotChannel = mergedChannel;
@@ -208,14 +244,17 @@ export default function useCommandTimer(
           callback: () => {}, // 占位，稍后 update
           metadata: {
             loopTask: true,
+            loop: timerConfig.loop !== false,
             pageType,
-            channelId: snapshotChannel?.id,
-            channelName: snapshotChannel?.name,
-            userId: snapshotUser?.id,
-            userName: snapshotUser?.name,
+            channelId: snapshotChannel?.ChannelId,
+            channelName: snapshotChannel?.ChannelName,
+            userId: snapshotUser?.UserId,
+            userName: snapshotUser?.UserName,
             startIndex,
+            endIndex,
             frequency: timerConfig.time,
             totalCommands: commands.length,
+            segmentCommands: endIndex - startIndex + 1,
             createdAt: new Date().toISOString()
           }
         });
@@ -225,6 +264,8 @@ export default function useCommandTimer(
           callback: createCommandCallback(
             taskId,
             startIndex,
+            endIndex,
+            timerConfig.loop !== false, // 默认为循环
             snapshotUser,
             snapshotChannel
           )
@@ -236,9 +277,11 @@ export default function useCommandTimer(
             ...prev,
             user: snapshotUser,
             channel: snapshotChannel,
-            startIndex
+            startIndex,
+            endIndex,
+            loop: timerConfig.loop !== false
           }));
-          setOpen(false);
+          onStart();
           const startCommand = commands[startIndex];
           Message.success(
             [
@@ -246,10 +289,12 @@ export default function useCommandTimer(
               `任务: ${uniqueName}`,
               `频率: ${timerConfig.time}s`,
               `起始索引: ${startIndex}`,
+              `结束索引: ${endIndex}`,
+              `模式: ${timerConfig.loop === false ? '单轮执行' : '循环执行'}`,
               `起始指令: ${
                 startCommand?.title || startCommand?.text || '未知'
               }`,
-              `指令总数: ${commands.length}`
+              `区间指令数: ${endIndex - startIndex + 1} / 总数 ${commands.length}`
             ].join('\n')
           );
         } else {
@@ -277,7 +322,9 @@ export default function useCommandTimer(
     console.log('Stopping all command tasks');
     const tasks = getCommandTasks();
     tasks.forEach(task => timerManager.stopTask(task.id));
-    setShowStopAllConfirm(false);
+
+    onClose();
+
     if (tasks.length > 0) {
       Message.success(`已停止 ${tasks.length} 个循环任务`);
     } else {
@@ -295,11 +342,6 @@ export default function useCommandTimer(
     [timerManager]
   );
 
-  // 打开任务创建弹窗（不再判断是否已有任务）
-  const onTimer = useCallback(() => {
-    setOpen(true);
-  }, []);
-
   // 表单提交创建任务
   const onSubmitTimer = useCallback(
     (e: React.FormEvent, payload: { user?: User; channel?: Channel }) => {
@@ -312,16 +354,11 @@ export default function useCommandTimer(
   const commandTasksInfo = getCommandTasks();
 
   return {
-    open,
-    setOpen,
-    showStopAllConfirm,
-    setShowStopAllConfirm,
     taskToDelete,
     setTaskToDelete,
     timerConfig,
     setTimerConfig,
     onSubmitTimer,
-    onTimer,
     stopAllCommandTasks,
     deleteSingleTask,
     timerManager,

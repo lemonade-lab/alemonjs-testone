@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { useUserHashKey, Platform } from '../core/alemon';
 import type { DataEnums } from 'alemonjs';
 import { appendGroupMessage, appendPrivateMessage } from './slices/chatSlice';
+import { normalizeFormatAsync } from '../core/imageStore';
 import { RootState, safeSend } from './index';
 import { Channel, User } from '../typing';
 
@@ -15,6 +16,10 @@ export const sendGroupFormat = createAsyncThunk<
 >(
   'chat/sendGroupFormat',
   async ({ currentChannel, content }, { getState, dispatch }) => {
+    // 发送前格式归一（图片引用 + 压缩）
+    const normalized = (await normalizeFormatAsync(
+      content as any
+    )) as DataEnums[];
     const state = getState();
     const { current: currentUser } = {
       current: state.users.current
@@ -29,7 +34,7 @@ export const sendGroupFormat = createAsyncThunk<
       Platform,
       UserId: currentUser.UserId
     });
-    const MessageText = content.find(i => i.type === 'Text')?.value || '';
+    const MessageText = normalized.find(i => i.type === 'Text')?.value || '';
     const payload = {
       name: 'message.create',
       ChannelId: currentChannel.ChannelId,
@@ -46,7 +51,7 @@ export const sendGroupFormat = createAsyncThunk<
       CreateAt: Date.now(),
       MessageId: Date.now().toString(),
       tag: currentChannel.ChannelId,
-      value: content
+      value: normalized
     };
 
     // 如果目标频道 和 当前频道不同。则不进行状态更新
@@ -57,7 +62,7 @@ export const sendGroupFormat = createAsyncThunk<
           UserName: currentUser.UserName,
           UserAvatar: currentUser.UserAvatar,
           CreateAt: payload.CreateAt,
-          data: content
+          data: normalized
         })
       );
     }
@@ -77,11 +82,14 @@ export const sendPrivateFormat = createAsyncThunk<
   if (!currentUser) {
     return;
   }
+  const normalized = (await normalizeFormatAsync(
+    content as any
+  )) as DataEnums[];
   const UserKey = useUserHashKey({
     Platform,
     UserId: currentUser.UserId
   });
-  const MessageText = content.find(i => i.type === 'Text')?.value || '';
+  const MessageText = normalized.find(i => i.type === 'Text')?.value || '';
   const payload = {
     name: 'private.message.create',
     UserId: currentUser.UserId,
@@ -96,7 +104,7 @@ export const sendPrivateFormat = createAsyncThunk<
     MessageId: Date.now().toString(),
     UserName: currentUser.UserName,
     tag: 'bot',
-    value: content
+    value: normalized
   };
   dispatch(
     appendPrivateMessage({
@@ -104,7 +112,7 @@ export const sendPrivateFormat = createAsyncThunk<
       UserName: currentUser.UserName,
       UserAvatar: currentUser.UserAvatar,
       CreateAt: payload.CreateAt,
-      data: content
+      data: normalized
     })
   );
   safeSend(payload);

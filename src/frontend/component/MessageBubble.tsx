@@ -1,39 +1,78 @@
 import dayjs from 'dayjs';
 import { Buffer } from 'buffer';
-import { Button } from '@/frontend/ui/Button';
-import { type DataEnums } from 'alemonjs';
 import { memo, useMemo } from 'react';
 import { Image as Zoom } from 'antd';
+import { Button } from '@/frontend/ui/Button';
+import { type DataEnums } from 'alemonjs';
 import '@/frontend/component/MessageBubble.scss';
+import { getImageObjectUrl } from '@/frontend/core/imageStore';
 
-type MessageBubble = {
+// ---------------- Types ----------------
+type MessageBubbleProps = {
   data: DataEnums[];
   createAt: number;
-  onSend: (value: string) => void;
-  onInput: (value: string) => void;
+  onSend?: (value: string) => void;
+  onInput?: (value: string) => void;
 };
 
-type RendererFunction = (item: any, ...args: any[]) => React.ReactNode;
+type RendererFunction = (item: any) => React.ReactNode;
 
-// 文本样式映射
+interface DataItemLike {
+  type?: string;
+  value?: any;
+  options?: any;
+}
+
+// ---------------- Utils ----------------
+const MAX_BASE64_LENGTH = 2 * 1024 * 1024; // 2MB
+
+function isPlainObject(v: any) {
+  return Object.prototype.toString.call(v) === '[object Object]';
+}
+
+function safeString(v: any): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  try {
+    return JSON.stringify(v);
+  } catch {
+    try {
+      return String(v);
+    } catch {
+      return '';
+    }
+  }
+}
+
+function isHttpUrl(url: any) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url);
+}
+
+function clampBase64(base64: string): string | null {
+  if (!base64) return null;
+  if (base64.length > MAX_BASE64_LENGTH) return null;
+  return base64;
+}
+
+// ---------------- Text Styles ----------------
 const TEXT_STYLES: Record<
   string,
   (content: React.ReactNode) => React.ReactNode
 > = {
-  bold: content => <strong>{content}</strong>,
-  italic: content => <em>{content}</em>,
-  boldItalic: content => (
+  bold: c => <strong>{c}</strong>,
+  italic: c => <em>{c}</em>,
+  boldItalic: c => (
     <strong>
-      <em>{content}</em>
+      <em>{c}</em>
     </strong>
   ),
-  block: content => <div className="block">{content}</div>,
-  strikethrough: content => <code>{content}</code>,
-  none: content => content,
-  default: content => content
+  block: c => <div className="block">{c}</div>,
+  strikethrough: c => <s>{c}</s>,
+  none: c => c,
+  default: c => c
 };
 
-// 提及类型映射
+// ---------------- Mention Types ----------------
 const MENTION_TYPES: Record<
   string,
   (value: string, userName?: string) => React.ReactNode
@@ -41,305 +80,357 @@ const MENTION_TYPES: Record<
   all: () => <strong>@全体成员</strong>,
   everyone: () => <strong>@全体成员</strong>,
   全体成员: () => <strong>@全体成员</strong>,
-  channel: value => <strong>#{value}</strong>,
-  user: (value, userName) => <strong>@{userName || value}</strong>,
-  guild: value => <strong>#{value}</strong>,
-  default: () => <span></span>
+  channel: v => <strong>#{v}</strong>,
+  user: (v, userName) => <strong>@{userName || v}</strong>,
+  guild: v => <strong>#{v}</strong>,
+  default: () => <span />
 };
 
-// Markdown 组件映射
+// ---------------- Markdown Renderers ----------------
 const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
-  'MD.title': mdItem => <h1>{mdItem.value}</h1>,
-  'MD.subtitle': mdItem => <h2>{mdItem.value}</h2>,
-  'MD.blockquote': mdItem => <blockquote>{mdItem.value}</blockquote>,
-  'MD.bold': mdItem => (
-    <strong className="px-1 py-2 rounded-md shadow-inner">
-      {mdItem.value}
+  'MD.title': md => <h1>{safeString(md.value).slice(0, 200)}</h1>,
+  'MD.subtitle': md => <h2>{safeString(md.value).slice(0, 200)}</h2>,
+  'MD.blockquote': md => (
+    <blockquote>{safeString(md.value).slice(0, 500)}</blockquote>
+  ),
+  'MD.bold': md => (
+    <strong className="px-1 py-0.5 rounded-md shadow-inner">
+      {safeString(md.value).slice(0, 500)}
     </strong>
   ),
   'MD.divider': () => <hr />,
-  'MD.text': mdItem => <span>{mdItem.value}</span>,
-  'MD.link': mdItem => (
-    <a href={mdItem.value.url} target="_blank" rel="noopener noreferrer">
-      {mdItem.value.text}
-    </a>
-  ),
-  'MD.image': mdItem => {
-    const w = mdItem.options?.width || '100';
-    const h = mdItem.options?.height || '100';
-    const url = mdItem.value;
-    if (!/^http(s)?:\/\//.test(url)) {
-      return null; // 如果不是有效的URL则不渲染
-    }
-    return url ? (
+  'MD.text': md => <span>{safeString(md.value).slice(0, 2000)}</span>,
+  'MD.link': md => {
+    const url = safeString(md.value?.url).slice(0, 1000);
+    const text = safeString(md.value?.text).slice(0, 200);
+    if (!isHttpUrl(url)) return null;
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        {text || url}
+      </a>
+    );
+  },
+  'MD.image': md => {
+    const url = safeString(md.value);
+    if (!isHttpUrl(url)) return null;
+    const w = Number(md.options?.width) || 100;
+    const h = Number(md.options?.height) || 100;
+    return (
       <Zoom
         style={{ width: `${w}px`, height: `${h}px` }}
         className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
         src={url}
+        alt="image"
+      />
+    );
+  },
+  'MD.italic': md => <em>{safeString(md.value).slice(0, 500)}</em>,
+  'MD.italicStar': md => (
+    <em className="italic">{safeString(md.value).slice(0, 500)}</em>
+  ),
+  'MD.strikethrough': md => <s>{safeString(md.value).slice(0, 500)}</s>,
+  'MD.newline': () => <br />,
+  'MD.list': md => {
+    const list = Array.isArray(md.value) ? md.value : [];
+    return (
+      <ul className="list-disc ml-4">
+        {list.slice(0, 200).map((li: any, i: number) => {
+          const text = safeString(li?.value?.text || li?.value || li).slice(
+            0,
+            500
+          );
+          return <li key={i}>{text}</li>;
+        })}
+      </ul>
+    );
+  },
+  'MD.template': () => <span>暂不支持模板</span>
+};
+
+// ---------------- Unsupported Components ----------------
+const UNSUPPORTED_COMPONENTS: Record<string, () => React.ReactNode> = {
+  'Ark.BigCard': () => <div>暂不支持 Ark.BigCard</div>,
+  'Ark.Card': () => <div>暂不支持 Ark.Card</div>,
+  'Ark.list': () => <div>暂不支持 Ark.list</div>,
+  'ImageFile': () => <div>暂不支持文件图片</div>,
+  'MD.template': () => <div>暂不支持</div>
+};
+
+// ---------------- Render Helpers ----------------
+const renderImage = (item: any): React.ReactNode => {
+  try {
+    const raw = item?.value;
+    if (!raw) return null;
+    let buffer: Buffer;
+    if (Array.isArray(raw)) {
+      buffer = Buffer.from(raw as any);
+    } else if (typeof raw === 'string') {
+      const limited = clampBase64(raw);
+      if (!limited) return <span>图片太大或无效</span>;
+      buffer = Buffer.from(limited, 'base64');
+    } else {
+      return null;
+    }
+    const base64String = buffer.toString('base64');
+    const url = `data:image/png;base64,${base64String}`;
+    return (
+      <Zoom
+        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+        src={url}
         alt="Image"
       />
-    ) : null;
-  },
-  'MD.italic': mdItem => <em>{mdItem.value}</em>,
-  'MD.italicStar': mdItem => <em className="italic">{mdItem.value}</em>,
-  'MD.strikethrough': mdItem => <s>{mdItem.value}</s>,
-  'MD.newline': () => <br />,
-  'MD.list': mdItem => {
-    const listItem = mdItem.value;
-    return (
-      <div className="list-disc">
-        {Array.isArray(listItem) &&
-          listItem.map((li: any, liIndex: number) => {
-            if (typeof li.value === 'string') {
-              return <li key={liIndex}>{li.value}</li>;
-            }
-            return (
-              <div key={liIndex}>
-                {li.value.index}.{li.value.text}
-              </div>
-            );
-          })}
-      </div>
     );
-  },
-  'MD.template': () => <div>暂时不支持MD.template</div>
+  } catch (e) {
+    console.warn('renderImage error', e);
+    return <span>图片解析失败</span>;
+  }
 };
 
-// 不支持的组件映射
-const UNSUPPORTED_COMPONENTS: Record<string, () => React.ReactNode> = {
-  'MD.template': () => <div>暂时不支持</div>,
-  'Ark.BigCard': () => <div>暂时不支持</div>,
-  'Ark.Card': () => <div>暂时不支持</div>,
-  'Ark.list': () => <div>暂时不支持</div>,
-  'ImageFile': () => <div>暂时不支持file图片</div>
-};
-
-// 渲染图片组件
-const renderImage = (item: any): React.ReactNode => {
-  if (!item.value) return null;
-  const data = Array.isArray(item.value)
-    ? Buffer.from(item.value as any)
-    : Buffer.from(item.value as string, 'base64');
-  const base64String = data.toString('base64');
-  const url = `data:image/png;base64,${base64String}`;
-  return (
-    <Zoom
-      className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-      src={url}
-      alt="Image"
-    />
-  );
-};
-
-// 渲染URL图片组件
 const renderImageURL = (item: any): React.ReactNode => {
-  const url = item.value as string;
-  // 查看是什么。https:// 正常渲染
-  // 如果是 base64:// 则进行处理
-  if (url.startsWith('base64://')) {
-    const base64Data = url.replace('base64://', '');
-    return renderImage({ value: base64Data });
-  }
-  return url ? (
-    <Zoom
-      className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-      src={url}
-      alt="ImageURL"
-    />
-  ) : null;
-};
-
-// 渲染文本组件
-const renderText = (item: any): React.ReactNode => {
-  let value = item.value as string;
-  if (!value) return null;
-  if (typeof value !== 'string') {
-    value = String(value);
-  }
-  const textContent = value.includes('\n')
-    ? value.split('\n').map((line: string, index: number) => (
-        <span key={index}>
-          {line}
-          <br />
-        </span>
-      ))
-    : value;
-  const style = item.options?.style || 'default';
-  const styleRenderer = TEXT_STYLES[style] || TEXT_STYLES.default;
-  return <span>{styleRenderer(textContent)}</span>;
-};
-
-// 渲染提及组件
-const renderMention = (item: any): React.ReactNode => {
-  const value = item.value as string;
-
-  // 检查特殊的全体成员提及
-  if (value === 'all' || value === 'everyone' || value === '全体成员') {
+  try {
+    const raw = safeString(item?.value);
+    if (!raw) return null;
+    if (raw.startsWith('base64://')) {
+      const base64Data = raw.replace('base64://', '');
+      return renderImage({ value: base64Data });
+    }
+    if (!isHttpUrl(raw)) return null;
     return (
-      <span>{MENTION_TYPES[value]?.(value) || MENTION_TYPES.all(value)}</span>
+      <Zoom
+        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+        src={raw}
+        alt="ImageURL"
+      />
     );
+  } catch (e) {
+    console.warn('renderImageURL error', e);
+    return <span>图片地址无效</span>;
   }
-
-  const belong = item.options?.belong || 'default';
-  const userName = item.options?.payload?.name;
-  const mentionRenderer = MENTION_TYPES[belong] || MENTION_TYPES.default;
-
-  return <span>{mentionRenderer(value, userName)}</span>;
 };
 
-// 渲染按钮组组件
+const renderText = (item: any): React.ReactNode => {
+  try {
+    let value = safeString(item?.value).slice(0, 5000);
+    if (!value) return null;
+    const styleKey = safeString(item?.options?.style) || 'default';
+    const styleRenderer = TEXT_STYLES[styleKey] || TEXT_STYLES.default;
+    const parts = value.split('\n');
+    const content =
+      parts.length > 1 ? (
+        <span>
+          {parts.map((line, i) => (
+            <span key={i}>
+              {line}
+              <br />
+            </span>
+          ))}
+        </span>
+      ) : (
+        value
+      );
+    return <span>{styleRenderer(content)}</span>;
+  } catch (e) {
+    console.warn('renderText error', e);
+    return <span>文本错误</span>;
+  }
+};
+
+const renderMention = (item: any): React.ReactNode => {
+  try {
+    const value = safeString(item?.value);
+    if (!value) return null;
+    if (['all', 'everyone', '全体成员'].includes(value)) {
+      return (
+        <span>{MENTION_TYPES[value]?.(value) || MENTION_TYPES.all(value)}</span>
+      );
+    }
+    const belong = safeString(item?.options?.belong) || 'default';
+    const userName = item?.options?.payload?.name;
+    const renderer = MENTION_TYPES[belong] || MENTION_TYPES.default;
+    return <span>{renderer(value, userName)}</span>;
+  } catch (e) {
+    console.warn('renderMention error', e);
+    return null;
+  }
+};
+
 const renderButtonGroup = (
   item: any,
-  onSend: (value: string) => void,
-  onInput: (value: string) => void
+  onSend: (v: string) => void,
+  onInput: (v: string) => void
 ): React.ReactNode => {
-  if (item.options?.template_id) {
-    return <div>暂时不支持BT template_id</div>;
+  try {
+    if (item?.options?.template_id) return <div>暂不支持按钮模板</div>;
+    const groups = item?.value;
+    if (!Array.isArray(groups)) return <div>按钮数据错误</div>;
+    return (
+      <div className="flex flex-col gap-3">
+        {groups.slice(0, 20).map((group: any, gi: number) => {
+          const bts = Array.isArray(group?.value) ? group.value : [];
+          return (
+            <div key={gi} className="flex flex-wrap gap-2">
+              {bts.slice(0, 30).map((bt: any, bi: number) => {
+                const meta =
+                  typeof bt?.value === 'string'
+                    ? { label: bt.value, title: bt.value }
+                    : bt?.value || { label: 'Button', title: '' };
+                const autoEnter = !!bt?.options?.autoEnter;
+                const data =
+                  typeof bt?.options?.data === 'string'
+                    ? { click: bt.options.data }
+                    : bt?.options?.data || {};
+                const label = safeString(meta.label).slice(0, 40) || 'Button';
+                return (
+                  <Button
+                    key={bi}
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (autoEnter) {
+                        onSend(safeString(data.click).slice(0, 2000));
+                      } else {
+                        onInput(safeString(data.click).slice(0, 2000));
+                      }
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  } catch (e) {
+    console.warn('renderButtonGroup error', e);
+    return <div>按钮渲染失败</div>;
   }
-
-  const groups = item.value;
-  if (!Array.isArray(groups)) {
-    return <div>BT.group value is not an array</div>;
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      {groups.map((group: any, groupIdx: number) => {
-        const bts = group.value;
-        if (!Array.isArray(bts)) {
-          return <div key={groupIdx}>BT.group value is not an array</div>;
-        }
-
-        return (
-          <div key={groupIdx} className="flex flex-wrap gap-2">
-            {bts.map((bt: any, btIdx: number) => {
-              const value =
-                typeof bt.value === 'string'
-                  ? { label: bt.value, title: bt.value }
-                  : bt.value;
-
-              const autoEnter = bt.options?.autoEnter;
-              const data =
-                typeof bt.options?.data === 'string'
-                  ? {
-                      click: bt.options?.data,
-                      confirm: bt.options?.data,
-                      cancel: bt.options?.data
-                    }
-                  : bt.options?.data;
-
-              return (
-                <Button
-                  key={btIdx}
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    if (autoEnter) {
-                      onSend(data?.click || '');
-                    } else {
-                      onInput(data?.click || '');
-                    }
-                  }}
-                >
-                  {value.label}
-                </Button>
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
 };
 
-// 渲染Markdown组件
 const renderMarkdown = (item: any): React.ReactNode => {
-  const markdown = item.value;
-  if (!Array.isArray(markdown)) return null;
-
-  return (
-    <div className="mb-4">
-      {markdown.map((mdItem: any, index: number) => {
-        const renderer = MARKDOWN_RENDERERS[mdItem.type];
-        return renderer ? <div key={index}>{renderer(mdItem)}</div> : null;
-      })}
-    </div>
-  );
+  try {
+    const markdown = Array.isArray(item?.value) ? item.value : [];
+    return (
+      <div className="mb-2 flex flex-col gap-1">
+        {markdown.slice(0, 200).map((md: any, i: number) => {
+          if (!md || typeof md !== 'object') return null;
+          const type = safeString(md.type);
+          const renderer = MARKDOWN_RENDERERS[type];
+          if (!renderer) return null;
+          try {
+            return <div key={i}>{renderer(md)}</div>;
+          } catch (err) {
+            console.warn('markdown item render error', err);
+            return null;
+          }
+        })}
+      </div>
+    );
+  } catch (e) {
+    console.warn('renderMarkdown error', e);
+    return <div>Markdown 数据错误</div>;
+  }
 };
 
-// 主要组件渲染器映射 - 使用 key-value 结构
+// ---------------- Component Renderer Map ----------------
 const COMPONENT_RENDERERS: Record<string, RendererFunction> = {
-  // 图片相关
-  Image: renderImage,
-  ImageURL: renderImageURL,
-
-  // 文本相关
-  Text: renderText,
-
-  // 交互相关
-  Mention: renderMention,
-  Link: (item: any) => <div>{item.value}</div>,
-
-  // 复杂组件
-  Markdown: renderMarkdown,
-
-  // 不支持的组件 - 展开不支持组件映射
-  ...UNSUPPORTED_COMPONENTS
+  'Text': renderText,
+  'Mention': renderMention,
+  'Image': renderImage,
+  'ImageURL': renderImageURL,
+  'ImageRef': (item: any) => {
+    try {
+      const hash = item?.value?.hash;
+      if (!hash) return <span>图片引用缺失</span>;
+      const url = getImageObjectUrl(hash);
+      if (!url) return <span>图片已释放</span>;
+      return (
+        <Zoom
+          className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+          src={url}
+          alt="ImageRef"
+        />
+      );
+    } catch (e) {
+      console.warn('render ImageRef error', e);
+      return <span>图片引用错误</span>;
+    }
+  },
+  'BT.group': (item: any) => (
+    <>
+      {renderButtonGroup(
+        item,
+        () => {},
+        () => {}
+      )}
+    </>
+  ), // 占位，实际调用时替换
+  'Markdown': renderMarkdown,
+  // 直接映射 markdown 子类型（如果后端直接下发）
+  'MD.title': md => MARKDOWN_RENDERERS['MD.title'](md),
+  'MD.subtitle': md => MARKDOWN_RENDERERS['MD.subtitle'](md),
+  'MD.blockquote': md => MARKDOWN_RENDERERS['MD.blockquote'](md),
+  'MD.bold': md => MARKDOWN_RENDERERS['MD.bold'](md),
+  'MD.divider': md => MARKDOWN_RENDERERS['MD.divider'](md),
+  'MD.text': md => MARKDOWN_RENDERERS['MD.text'](md),
+  'MD.link': md => MARKDOWN_RENDERERS['MD.link'](md),
+  'MD.image': md => MARKDOWN_RENDERERS['MD.image'](md),
+  'MD.italic': md => MARKDOWN_RENDERERS['MD.italic'](md),
+  'MD.italicStar': md => MARKDOWN_RENDERERS['MD.italicStar'](md),
+  'MD.strikethrough': md => MARKDOWN_RENDERERS['MD.strikethrough'](md),
+  'MD.newline': md => MARKDOWN_RENDERERS['MD.newline'](md),
+  'MD.list': md => MARKDOWN_RENDERERS['MD.list'](md)
 };
 
+// ---------------- Main Component ----------------
 const MessageBubble = ({
   data,
   createAt,
-  onSend = () => {},
-  onInput = () => {}
-}: MessageBubble) => {
-  /**
-   * @param value
-   */
-  const handleSend = (value: string) => {
-    onSend(value);
-  };
+  onSend,
+  onInput
+}: MessageBubbleProps) => {
+  const _onSend = onSend || (() => {});
+  const _onInput = onInput || (() => {});
 
-  /**
-   * @param value
-   */
-  const handleInput = (value: string) => {
-    onInput(value);
-  };
-
-  // 格式化时间戳
   const formattedTime = useMemo(() => {
-    return dayjs(createAt).format('YYYY-MM-DD HH:mm:ss');
+    const ts =
+      typeof createAt === 'number' && isFinite(createAt)
+        ? createAt
+        : Date.now();
+    return dayjs(ts).format('YYYY-MM-DD HH:mm:ss');
   }, [createAt]);
 
-  // 渲染数据项 - 使用 key-value 映射优化
   const renderedItems = useMemo(() => {
-    return data.map((item, index) => {
-      // 从映射中获取渲染器
-      const renderer = COMPONENT_RENDERERS[item.type];
-
-      if (!renderer) {
-        console.warn(`Unsupported component type: ${item.type}`);
+    if (!Array.isArray(data)) return null;
+    return data.map((raw: any, index: number) => {
+      const item: DataItemLike = isPlainObject(raw)
+        ? raw
+        : { type: 'Text', value: safeString(raw) };
+      const type = safeString(item.type).trim();
+      if (!type) return null;
+      try {
+        if (type === 'BT.group') {
+          return (
+            <div key={index}>{renderButtonGroup(item, _onSend, _onInput)}</div>
+          );
+        }
+        const renderer = COMPONENT_RENDERERS[type];
+        if (!renderer) {
+          const unsupported = UNSUPPORTED_COMPONENTS[type];
+          return unsupported ? <div key={index}>{unsupported()}</div> : null;
+        }
+        return <div key={index}>{renderer(item)}</div>;
+      } catch (e) {
+        console.warn('render item error', type, e);
         return null;
       }
-
-      // 特殊处理需要回调函数的组件
-      if (item.type === 'BT.group') {
-        return (
-          <div key={index}>
-            {renderButtonGroup(item, handleSend, handleInput)}
-          </div>
-        );
-      }
-
-      // 其他组件只需要传入item参数
-      return <div key={index}>{renderer(item)}</div>;
     });
-  }, [data, handleSend, handleInput]);
+  }, [data, _onSend, _onInput]);
 
   return (
     <div className="flex items-end">
-      <div className="rounded-md py-1 flex relative px-2 shadow-md bg-[var(--panel-background)]">
+      <div className="message-bubble rounded-md py-1 flex relative px-2 shadow-md bg-[var(--panel-background)]">
         {renderedItems}
         <span className="absolute -bottom-3 whitespace-nowrap right-0 text-[0.5rem]">
           {formattedTime}

@@ -6,11 +6,13 @@ import Header from '@/frontend/pages/common/Header';
 import { useAppDispatch, useAppSelector } from '@/frontend/store';
 import { loadConnects } from '@/frontend/store/slices/connectSlice';
 import useVSCode from '@/frontend/hook/useVSCode';
+import Footer from './common/Footer';
 
 export default function App() {
   const dispatch = useAppDispatch();
   const { tab } = useAppSelector(s => s.chat);
   const { lastConfig } = useAppSelector(s => s.socket);
+  const { current: theme } = useAppSelector(s => s.theme);
 
   // VS Code 消息处理
   useVSCode();
@@ -28,14 +30,21 @@ export default function App() {
   };
 
   return (
-    <div className="overflow-hidden flex flex-1 flex-col bg-[var(--sideBar-background)]">
+    <div
+      className="overflow-hidden flex flex-1 flex-col bg-[var(--sideBar-background)]"
+      data-theme={theme}
+    >
       <Header />
       {tabMap[tab]}
-      {tab !== 'connect' && lastConfig && (
-        <footer className="flex flex-row justify-between items-center px-4 py-1 select-none border-t border-[--panel-border]">
-          [{lastConfig.host}][{lastConfig.port}]
-        </footer>
-      )}
+      <Footer>
+        {tab !== 'connect' && lastConfig ? (
+          <div>
+            [{lastConfig.host}][{lastConfig.port}]
+          </div>
+        ) : (
+          <div> </div>
+        )}
+      </Footer>
     </div>
   );
 }

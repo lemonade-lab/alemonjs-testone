@@ -1,21 +1,20 @@
-import { Modal, Tooltip } from 'antd';
-import CloseOutlined from '@ant-design/icons/CloseOutlined';
-import { Button } from '@/frontend/ui/Button';
+import { Tooltip } from 'antd';
 import { useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
+import BaseModal from './BaseModal';
 
 interface ModalStopAllConfirmProps {
   open: boolean;
   onCancel: () => void;
   tasks: any[]; // 传入的应是“正在运行”的循环任务列表 (调用处已经 filter)
-  onStopAll: () => void; // 停止所有循环任务（运行与否都处理）
+  onConfirm: () => void; // 停止所有循环任务（运行与否都处理）
 }
 
 export default function ModalStopAllConfirm({
   open,
   onCancel,
   tasks,
-  onStopAll
+  onConfirm
 }: ModalStopAllConfirmProps) {
   // 统计信息（如果调用方传的是运行中列表，则 running = tasks.length）
   const stats = useMemo(() => {
@@ -39,38 +38,35 @@ export default function ModalStopAllConfirm({
   }, [tasks, onCancel]);
 
   return (
-    <Modal
-      className="testone-modal"
+    <BaseModal
       open={open}
-      footer={null}
-      title={null}
+      width={380}
       onCancel={onCancel}
-      closeIcon={
-        <div className="bg-transparent text-[var(--editor-foreground)] hover:bg-[var(--button-secondaryHover-background)] rounded p-1 transition-colors">
-          <CloseOutlined />
+      titleIcon={
+        <div className="w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xl shadow">
+          🛑
         </div>
       }
-      centered
-      width={380}
+      title={
+        <>
+          停止所有循环任务
+          {stats.running > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-[11px] text-red-400 border border-red-500/30">
+              运行中 {stats.running}
+            </span>
+          )}
+        </>
+      }
+      onOk={onConfirm}
+      description="此操作会对全部循环任务生效"
+      okText="🛑 停止全部"
     >
-      <div className="p-6 space-y-3">
+      <div className="space-y-3">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xl shadow">
-            🛑
-          </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[var(--editor-foreground)] flex items-center gap-2">
-              停止所有循环任务
-              {stats.running > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-[11px] text-red-400 border border-red-500/30">
-                  运行中 {stats.running}
-                </span>
-              )}
-            </h2>
-            <p className="text-[11px] mt-1 text-[var(--descriptionForeground)] leading-relaxed">
-              此操作会对全部循环任务生效
-            </p>
+            <h2 className="text-lg font-semibold text-[var(--editor-foreground)] flex items-center gap-2"></h2>
+            <p className="text-[11px] mt-1 text-[var(--descriptionForeground)] leading-relaxed"></p>
           </div>
         </div>
 
@@ -141,6 +137,18 @@ export default function ModalStopAllConfirm({
                     <span>频率: {freq ?? '—'}s</span>
                     <span>执行: {t.executionCount}</span>
                     <span>起始: #{(t.metadata?.startIndex ?? 0) + 1}</span>
+                    <span>
+                      结束: #
+                      {typeof t.metadata?.endIndex === 'number'
+                        ? t.metadata.endIndex + 1
+                        : t.metadata?.totalCommands}
+                    </span>
+                    <span>
+                      模式: {t.metadata?.loop === false ? '单轮' : '循环'}
+                    </span>
+                    {typeof t.metadata?.segmentCommands === 'number' && (
+                      <span>区间: {t.metadata.segmentCommands}</span>
+                    )}
                     <span>创建: {createdAt}</span>
                   </div>
                 </div>
@@ -148,28 +156,7 @@ export default function ModalStopAllConfirm({
             })}
           </div>
         )}
-
-        {/* Footer Buttons */}
-        <div className="flex justify-end gap-3 ">
-          <Button
-            onClick={onCancel}
-            className="bg-[var(--button-background)] hover:bg-[var(--button-hoverBackground)] text-[var(--button-foreground)] border border-[var(--button-border)]"
-          >
-            取消
-          </Button>
-          <Button
-            onClick={onStopAll}
-            disabled={tasks.length === 0}
-            className={`border text-white ${
-              tasks.length === 0
-                ? 'bg-zinc-600 border-zinc-600 cursor-not-allowed'
-                : 'bg-red-500 hover:bg-red-600 border-red-500'
-            } flex items-center gap-1`}
-          >
-            🛑 停止全部
-          </Button>
-        </div>
       </div>
-    </Modal>
+    </BaseModal>
   );
 }

@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
-import { Modal } from 'antd';
-import CloseOutlined from '@ant-design/icons/CloseOutlined';
-import { Button } from '@/frontend/ui/Button';
 import dayjs from 'dayjs';
+import BaseModal from './BaseModal';
 
 interface ModalTaskDeleteConfirmProps {
   task: any | null;
@@ -28,6 +26,8 @@ export default function ModalTaskDeleteConfirm({
   const frequency = meta.frequency ?? '—';
   const startIndex =
     typeof meta.startIndex === 'number' ? meta.startIndex + 1 : '—';
+  const endIndex = typeof meta.endIndex === 'number' ? meta.endIndex + 1 : '—';
+  const segmentCommands = meta.segmentCommands;
   const createdAt = meta.createdAt
     ? dayjs(meta.createdAt).format('YYYY-MM-DD HH:mm:ss')
     : '—';
@@ -39,36 +39,33 @@ export default function ModalTaskDeleteConfirm({
     : '—';
 
   return (
-    <Modal
-      className="testone-modal"
+    <BaseModal
       open={!!task}
-      footer={null}
-      title={null}
       onCancel={onCancel}
-      closeIcon={
-        <div className="bg-transparent text-[var(--editor-foreground)] hover:bg-[var(--button-secondaryHover-background)] rounded p-1 transition-colors">
-          <CloseOutlined />
+      titleIcon={
+        <div className="w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-xl shadow">
+          🗑️
         </div>
       }
-      centered
-      width={380}
+      title={
+        <>
+          删除任务确认
+          <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-[11px] text-red-400 border border-red-500/30">
+            危险操作
+          </span>
+        </>
+      }
+      description="删除后需重新创建；此任务当前状态会实时刷新"
+      okText="🗑️ 删除任务"
+      onOk={() => onConfirm(task.id)}
+      width={340}
     >
-      <div className="p-6 space-y-6">
+      <div className="space-y-1">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-xl shadow">
-            🗑️
-          </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[var(--editor-foreground)] flex items-center gap-2">
-              删除任务确认
-              <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-[11px] text-red-400 border border-red-500/30">
-                危险操作
-              </span>
-            </h2>
-            <p className="text-[11px] mt-1 leading-relaxed text-[var(--descriptionForeground)]">
-              删除后需重新创建；此任务当前状态会实时刷新。
-            </p>
+            <h2 className="text-lg font-semibold text-[var(--editor-foreground)] flex items-center gap-2"></h2>
+            <p className="text-[11px] mt-1 leading-relaxed text-[var(--descriptionForeground)]"></p>
           </div>
         </div>
 
@@ -101,6 +98,15 @@ export default function ModalTaskDeleteConfirm({
             {[
               { name: '频率', value: `${frequency} 秒` },
               { name: '起始指令', value: `#${startIndex}` },
+              { name: '结束指令', value: `#${endIndex}` },
+              {
+                name: '区间数',
+                value:
+                  typeof segmentCommands === 'number'
+                    ? `${segmentCommands}`
+                    : '—'
+              },
+              { name: '模式', value: meta.loop === false ? '单轮' : '循环' },
               {
                 name: '已执行次数',
                 value: `${task.executionCount ?? 0} 次`
@@ -121,23 +127,7 @@ export default function ModalTaskDeleteConfirm({
         <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-[11px] leading-relaxed text-red-300">
           ⚠️ 删除将立即停止该任务并移除记录，无法撤销。
         </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <Button
-            onClick={onCancel}
-            className="bg-[var(--button-background)] hover:bg-[var(--button-hoverBackground)] text-[var(--button-foreground)] border border-[var(--button-border)]"
-          >
-            取消
-          </Button>
-          <Button
-            onClick={() => onConfirm(task.id)}
-            className="bg-red-500 hover:bg-red-600 text-white border border-red-500 flex items-center gap-1"
-          >
-            🗑️ 删除任务
-          </Button>
-        </div>
       </div>
-    </Modal>
+    </BaseModal>
   );
 }

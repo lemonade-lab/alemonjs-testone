@@ -10,7 +10,7 @@ const ChannelItem = ({
 }) => {
   return (
     <div
-      className="flex items-center p-2  hover:bg-[var(--list-hoverBackground)] cursor-pointer"
+      className="flex items-center p-2 hover:bg-[var(--list-hoverBackground)] cursor-pointer animate__animated animate__fadeInUp hover-lift"
       onClick={() => onSelect(channel)}
     >
       <img

@@ -22,15 +22,19 @@ import chatReducer, {
   setPrivateMessages,
   setTab
 } from '@/frontend/store/slices/chatSlice';
+import { deleteSelectedMessages } from '@/frontend/store/slices/chatSlice';
 
 import connectReducer from '@/frontend/store/slices/connectSlice';
+import themeReducer from '@/frontend/store/slices/themeSlice';
 
 import {
   wsConnectRequest,
   wsConnected,
   wsDisconnected,
   wsSetError,
-  wsScheduleRestart
+  wsScheduleRestart,
+  wsIncReconnect,
+  wsCancel
 } from '@/frontend/store/slices/socketSlice';
 
 import {
@@ -43,14 +47,20 @@ import { setCommands } from '@/frontend/store/slices/commandSlice';
 
 // 外部工具
 import * as flattedJSON from 'flatted';
-import { saveChatList, getChatList } from '@/frontend/core/chatlist';
+import {
+  saveChatList,
+  getChatList,
+  runtimeTrimArray
+} from '@/frontend/core/chatlist';
 import { Message } from '@/frontend/core/message';
 import { payloadToMentions } from '@/frontend/core/alemon';
+import { normalizeFormatAsync } from '@/frontend/core/imageStore';
 
 // ---------------- WebSocket 相关私有变量 ----------------
 const RECONNECT_CODE_NORMAL = 1000;
 let ws: WebSocket | null = null;
 let reconnectTimer: any = null;
+let connectTimeoutTimer: any = null; // 新增：连接超时计时器
 
 // ---------------- 工具函数 ----------------
 function safeSend(obj: any) {
@@ -74,10 +84,22 @@ function loadHistory(
   channelId?: string
 ) {
   try {
-    const priv = getChatList(host, port, 'private', 'bot') || [];
+    const priv =
+      getChatList({
+        host,
+        port,
+        type: 'private',
+        chatId: 'bot'
+      }) || [];
     dispatch(setPrivateMessages(priv));
     if (channelId) {
-      const group = getChatList(host, port, 'public', channelId) || [];
+      const group =
+        getChatList({
+          host,
+          port,
+          type: 'public',
+          chatId: channelId
+        }) || [];
       dispatch(setGroupMessages(group));
     }
   } catch (e) {
@@ -96,38 +118,12 @@ listenerMiddleware.startListening({
     deleteGroupMessage,
     deletePrivateMessage,
     clearGroupMessages,
-    clearPrivateMessages
+    clearPrivateMessages,
+    deleteSelectedMessages
   ),
   effect: async (_action, api) => {
-    const state: any = api.getState();
-    const cfg = state.socket?.lastConfig;
-    if (!cfg) {
-      return;
-    }
-
-    try {
-      // 私聊
-      saveChatList(
-        cfg.host,
-        cfg.port,
-        'private',
-        'bot',
-        state.chat.privateMessages
-      );
-      // 群聊
-      const channelId = state.channels.current?.ChannelId;
-      if (channelId) {
-        saveChatList(
-          cfg.host,
-          cfg.port,
-          'public',
-          channelId,
-          state.chat.groupMessages
-        );
-      }
-    } catch {
-      Message.error('持久化聊天失败');
-    }
+    // 合并多次触发：50ms 内只写一次
+    schedulePersist(api.getState as any, () => Message.error('持久化聊天失败'));
   }
 });
 
@@ -152,7 +148,13 @@ listenerMiddleware.startListening({
 
     const channelId = state.channels.current?.ChannelId;
     if (channelId) {
-      const list = getChatList(cfg.host, cfg.port, 'public', channelId) || [];
+      const list =
+        getChatList({
+          host: cfg.host,
+          port: cfg.port,
+          type: 'public',
+          chatId: channelId
+        }) || [];
       api.dispatch(setGroupMessages(list));
     } else {
       // 没有当前群，则清空群消息
@@ -187,7 +189,27 @@ export const wsMiddleware: Middleware<{}, any> = store => next => action => {
       return result;
     }
 
+    // 启动连接超时（例如 8 秒）
+    if (connectTimeoutTimer) {
+      clearTimeout(connectTimeoutTimer);
+      connectTimeoutTimer = null;
+    }
+    connectTimeoutTimer = setTimeout(() => {
+      // 仍处于连接中则判定超时
+      if (ws && ws.readyState === WebSocket.CONNECTING) {
+        try {
+          ws.close();
+        } catch {}
+        store.dispatch(wsSetError('连接超时'));
+        // 交给 onclose 逻辑决定是否重连
+      }
+    }, 1000 * 6);
+
     ws.onopen = () => {
+      if (connectTimeoutTimer) {
+        clearTimeout(connectTimeoutTimer);
+        connectTimeoutTimer = null;
+      }
       store.dispatch(wsConnected());
       const state: any = store.getState();
       const { chat } = state;
@@ -212,28 +234,114 @@ export const wsMiddleware: Middleware<{}, any> = store => next => action => {
     };
 
     ws.onerror = err => {
+      if (connectTimeoutTimer) {
+        clearTimeout(connectTimeoutTimer);
+        connectTimeoutTimer = null;
+      }
       console.error('WS 错误', err);
       store.dispatch(wsSetError('WebSocket 错误'));
     };
 
     ws.onclose = ev => {
+      if (connectTimeoutTimer) {
+        clearTimeout(connectTimeoutTimer);
+        connectTimeoutTimer = null;
+      }
       store.dispatch(wsDisconnected());
       const state: any = store.getState();
       const socket = state.socket;
-      if (
-        socket.allowRestart &&
-        ev.code !== RECONNECT_CODE_NORMAL &&
-        socket.lastConfig
-      ) {
+      if (!socket.allowRestart) {
+        return;
+      }
+      // 超过 3 次失败则停止自动重连（除非是持久重连模式）
+      if (!socket.persistentReconnect && socket.reconnectAttempts >= 3) {
+        return; // 放弃（非持久模式达到上限）
+      }
+      if (ev.code !== RECONNECT_CODE_NORMAL && socket.lastConfig) {
+        const backoff = socket.reconnectDelay || 1200; // 固定 1.2s
+        // 立即标记正在等待重连，以便 UI 显示 loading
+        store.dispatch(wsScheduleRestart());
         reconnectTimer = setTimeout(() => {
-          store.dispatch(wsScheduleRestart());
-          // 这里使用 socket.lastConfig 重新连接
-          store.dispatch(wsConnectRequest(socket.lastConfig!));
-        }, socket.reconnectDelay);
+          // 再次检查次数，避免 race
+          const againState: any = store.getState();
+          if (
+            !againState.socket.persistentReconnect &&
+            againState.socket.reconnectAttempts >= 3
+          ) {
+            // 达到上限：确保关闭 loading
+            store.dispatch(wsDisconnected());
+            // 关闭后续自动重启
+            // 直接修改 allowRestart 需要 action，这里复用 wsSetError 不合适，可忽略或增加一个 action；简单起见保持 allowRestart 状态
+            return;
+          }
+          console.debug(
+            '[WS] attempt reconnect',
+            againState.socket.reconnectAttempts + 1,
+            'persistent=',
+            againState.socket.persistentReconnect
+          );
+          store.dispatch(wsIncReconnect());
+          store.dispatch(wsConnectRequest(againState.socket.lastConfig!));
+        }, backoff);
       }
     };
   }
+  // 处理取消连接
+  if (wsCancel.match(action)) {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    if (connectTimeoutTimer) {
+      clearTimeout(connectTimeoutTimer);
+      connectTimeoutTimer = null;
+    }
+    try {
+      if (
+        ws &&
+        (ws.readyState === WebSocket.OPEN ||
+          ws.readyState === WebSocket.CONNECTING)
+      ) {
+        // 使用正常关闭码，避免触发重连
+        ws.close(RECONNECT_CODE_NORMAL, 'manual cancel');
+      }
+    } catch {}
+  }
 
+  return result;
+};
+
+// ---------------- 即时裁剪中间件（追加消息后立刻同步 UI） ----------------
+const trimMiddleware: Middleware = storeAPI => next => action => {
+  const result = next(action);
+  try {
+    if (
+      appendGroupMessage.match(action) ||
+      appendPrivateMessage.match(action)
+    ) {
+      const state: any = storeAPI.getState();
+      const cfg = state.socket?.lastConfig;
+      if (!cfg) {
+        return result;
+      }
+      if (appendPrivateMessage.match(action)) {
+        const current = state.chat.privateMessages;
+        const trimmed = runtimeTrimArray(current);
+        if (trimmed !== current) {
+          storeAPI.dispatch(setPrivateMessages(trimmed));
+        }
+      }
+      if (appendGroupMessage.match(action)) {
+        const current = state.chat.groupMessages;
+        const trimmed = runtimeTrimArray(current);
+        if (trimmed !== current) {
+          storeAPI.dispatch(setGroupMessages(trimmed));
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('即时裁剪中间件错误', e);
+  }
   return result;
 };
 
@@ -286,21 +394,28 @@ function handleServerPayload(store: any, receivedData: any) {
   }
 }
 
-function handleAction(store: any, data: any) {
+async function handleAction(store: any, data: any) {
   const state: any = store.getState();
   const bot = state.users.bot;
   // 当前选择的频道
   const channel = state.channels.current;
 
   if (data.action === 'message.send') {
+    let format = data.payload?.params?.format;
+    if (Array.isArray(format)) {
+      try {
+        format = await normalizeFormatAsync(format);
+      } catch (e) {
+        console.warn('服务器消息格式图片转换失败', e);
+      }
+    }
     const message: any = {
       UserId: bot?.UserId,
       UserName: bot?.UserName,
       UserAvatar: bot?.UserAvatar,
       CreateAt: Date.now(),
-      data: data.payload?.params?.format
+      data: format
     };
-
     if (/private/.test(data.payload?.event?.name || '')) {
       store.dispatch(appendPrivateMessage(message));
       persistPrivate(store);
@@ -329,17 +444,7 @@ function persistPrivate(store: any) {
   if (!cfg) {
     return;
   }
-  try {
-    saveChatList(
-      cfg.host,
-      cfg.port,
-      'private',
-      'bot',
-      state.chat.privateMessages
-    );
-  } catch (e) {
-    Message.error('保存私聊失败');
-  }
+  schedulePersist(store.getState, () => Message.error('保存私聊失败'));
 }
 
 function persistGroup(store: any) {
@@ -349,17 +454,72 @@ function persistGroup(store: any) {
   if (!cfg || !channelId) {
     return;
   }
-  try {
-    saveChatList(
-      cfg.host,
-      cfg.port,
-      'public',
-      channelId,
-      state.chat.groupMessages
-    );
-  } catch (e) {
-    Message.error('保存群聊失败');
+  schedulePersist(store.getState, () => Message.error('保存群聊失败'));
+}
+
+// ---------------- 批量持久化调度 ----------------
+let _persistTimer: any = null;
+let _pendingPersist = false;
+function schedulePersist(getState: () => any, onError: () => void) {
+  if (_persistTimer) {
+    _pendingPersist = true;
+    return;
   }
+  _pendingPersist = true;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    if (!_pendingPersist) {
+      return;
+    }
+    _pendingPersist = false;
+    const state = getState();
+    const cfg = state.socket?.lastConfig;
+    if (!cfg) {
+      return;
+    }
+    const persistFn = () => {
+      try {
+        const { data: trimmedPriv, changed: privChanged } = saveChatList(
+          { host: cfg.host, port: cfg.port, type: 'private', chatId: 'bot' },
+          state.chat.privateMessages
+        );
+        if (privChanged) {
+          // 同步 Redux，避免 UI 保留被裁剪的旧消息
+          try {
+            store.dispatch(setPrivateMessages(trimmedPriv));
+          } catch (e) {
+            console.warn('同步裁剪私聊消息失败', e);
+          }
+        }
+        const channelId = state.channels.current?.ChannelId;
+        if (channelId) {
+          const { data: trimmedGroup, changed: groupChanged } = saveChatList(
+            {
+              host: cfg.host,
+              port: cfg.port,
+              type: 'public',
+              chatId: channelId
+            },
+            state.chat.groupMessages
+          );
+          if (groupChanged) {
+            try {
+              store.dispatch(setGroupMessages(trimmedGroup));
+            } catch (e) {
+              console.warn('同步裁剪群聊消息失败', e);
+            }
+          }
+        }
+      } catch {
+        onError();
+      }
+    };
+    if (typeof (window as any)?.requestIdleCallback === 'function') {
+      (window as any).requestIdleCallback(persistFn, { timeout: 1000 });
+    } else {
+      persistFn();
+    }
+  }, 50); // 50ms 节流窗口
 }
 
 // ---------------- Store ----------------
@@ -370,12 +530,13 @@ export const store = configureStore({
     channels: channelReducer,
     commands: commandReducer,
     chat: chatReducer,
-    connect: connectReducer
+    connect: connectReducer,
+    theme: themeReducer
   },
   middleware: getDefault =>
     getDefault({
       serializableCheck: false
-    }).concat(listenerMiddleware.middleware, wsMiddleware),
+    }).concat(listenerMiddleware.middleware, trimMiddleware, wsMiddleware),
   devTools: process.env.NODE_ENV === 'development'
 });
 

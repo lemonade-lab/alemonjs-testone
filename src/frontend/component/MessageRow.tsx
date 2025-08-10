@@ -9,19 +9,48 @@ type MessageRowProps = {
   onDelete: (item: MessageItem) => void;
   onSend: (value: string) => void;
   onInput: (value: string) => void;
+  selectMode?: boolean;
+  selected?: boolean;
 };
 
 // 单个消息行组件
 const MessageRow = memo(
-  ({ item, isOwnMessage, onDelete, onSend, onInput }: MessageRowProps) => {
+  ({
+    item,
+    isOwnMessage,
+    onDelete,
+    onSend,
+    onInput,
+    selectMode = false,
+    selected = false
+  }: MessageRowProps) => {
     console.log('MessageRow 渲染，消息创建时间:', item.CreateAt);
     return (
       <div
-        className={classNames('flex gap-1', {
+        className={classNames('flex gap-1 ', {
           'ml-auto flex-row-reverse': isOwnMessage,
-          'mr-auto': !isOwnMessage
+          'mr-auto': !isOwnMessage,
+          'opacity-80': selectMode,
+          'pb-3 pt-2 px-2': selectMode && selected
         })}
       >
+        {selectMode && (
+          <div
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              onDelete(item);
+            }}
+            className={classNames(
+              'w-5 h-5 mt-3 rounded border flex items-center justify-center cursor-pointer select-none',
+              selected
+                ? 'bg-blue-500 border-blue-500 text-white'
+                : 'border-gray-400 text-transparent'
+            )}
+          >
+            ✓
+          </div>
+        )}
         {/* 用户头像 */}
         {item.UserAvatar ? (
           <img
@@ -42,26 +71,15 @@ const MessageRow = memo(
           onInput={onInput}
           createAt={item.CreateAt}
         />
-
-        {/* 删除按钮 */}
-        <div className="flex justify-end items-end">
-          <div
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-              onDelete(item);
-            }}
-            className="select-none cursor-pointer hover:bg-red-100 rounded px-1 transition-colors"
-          >
-            <span className="text-red-800 text-sm">del</span>
-          </div>
-        </div>
       </div>
     );
   },
   (prevProps, nextProps) => {
     // 仅当消息创建时间不同才重新渲染
-    const isSame = prevProps.item.CreateAt === nextProps.item.CreateAt;
+    const isSame =
+      prevProps.item.CreateAt === nextProps.item.CreateAt &&
+      prevProps.selected === nextProps.selected &&
+      prevProps.selectMode === nextProps.selectMode;
     return isSame;
   }
 );
