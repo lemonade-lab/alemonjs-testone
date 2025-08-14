@@ -72,7 +72,7 @@ export default function useCommandTimer(
     time: 1.2,
     startIndex: 0,
     endIndex: undefined,
-    loop: true
+    loop: false
   });
 
   // 每个任务独立的当前指令索引

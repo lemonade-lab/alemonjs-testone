@@ -5,8 +5,17 @@ import PopoverBox from '@/frontend/ui/PopoverBox';
 
 import ClearOutlined from '@ant-design/icons/ClearOutlined';
 import OrderedListOutlined from '@ant-design/icons/OrderedListOutlined';
+import KeyOutlined from '@ant-design/icons/KeyOutlined';
 import { useState } from 'react';
 import { Command, User } from '@/frontend/typing';
+import {
+  closeImageCompression,
+  isImageCompressionOpen,
+  openImageCompression
+} from '@/frontend/core/imageStore';
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
+import { Message } from '@/frontend/core/message';
 
 const InputBox = ({
   value,
@@ -37,6 +46,16 @@ const InputBox = ({
 }) => {
   const [showCommands, setShowCommands] = useState(false);
   const [showClearPopover, setShowClearPopover] = useState(false);
+  const [open, setOpen] = useState(isImageCompressionOpen());
+  const updateImageCompression = () => {
+    const open = isImageCompressionOpen();
+    if (open) {
+      Message.success('资源压缩已开启');
+    } else {
+      Message.success('资源压缩已关闭');
+    }
+    setOpen(open);
+  };
   return (
     <div className="relative">
       <CommandList
@@ -81,6 +100,21 @@ const InputBox = ({
           <div className="flex cursor-pointer gap-1" onClick={() => onClear()}>
             <ClearOutlined />
             删除所有
+          </div>
+          <div
+            className="flex cursor-pointer gap-1"
+            onClick={() => {
+              if (open) {
+                closeImageCompression();
+              } else {
+                openImageCompression();
+              }
+              updateImageCompression();
+            }}
+          >
+            <KeyOutlined />
+            资源压缩
+            {open ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
           </div>
         </div>
       </PopoverBox>
