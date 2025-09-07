@@ -1,88 +1,76 @@
-name: 阅览
+name: 构建和发布
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号(自增)'
+        required: false
+
+permissions:
+  contents: write
 
 jobs:
-  docs:
+  build:
+    name: 构建和发布 VS Code 插件
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: 结账代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: version 18
-        uses: actions/setup-node@v2
+      - name: 检查分支
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "错误: 该工作流只能在 main 分支上运行。"
+          exit 1
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: set system time
-        id: beijing_time
-        run: echo "BEIJING_TIME=$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+      - name: 安装依赖项
+        run: npm ci
 
-      - name: delete .npmrc
+      - name: 自动获取/自增版本号
+        id: versioning
         run: |
-          rm -rf .npmrc
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="v${{ github.event.inputs.version }}"
+          else
+            LATEST_TAG=$(git tag --sort=-v:refname | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" | head -n 1)
+            if [ -z "$LATEST_TAG" ]; then
+              VERSION="v0.0.1"
+            else
+              VERSION_NUM=${LATEST_TAG#v}
+              MAJOR=$(echo $VERSION_NUM | cut -d. -f1)
+              MINOR=$(echo $VERSION_NUM | cut -d. -f2)
+              PATCH=$(echo $VERSION_NUM | cut -d. -f3)
+              PATCH=$((PATCH + 1))
+              VERSION="v$MAJOR.$MINOR.$PATCH"
+            fi
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "本次发布版本号: $VERSION"
 
-      - name: yarn install
-        run: yarn install --ignore-engines
+      - name: 构建
+        run: npm run build
 
-      - name: build
-        run: yarn build --base /alemonjs-testone/
+      - name: 打包 VSIX
+        run: npx vsce package --out alemonjs-testone.vsix
 
-      # - name: prepare docs
-      #   run: |
-      #     echo 'testone.dev' > dist-testone/CNAME
-
-      - name: push docs
-        run: |
-          cd dist-testone/
-          git init
-          git config --local user.email "ningmengchongshui@gmail.com"
-          git config --local user.name "ningmengchongshui"
-          git add -A
-          git commit -m "自动打包 - ${{ env.BEIJING_TIME }}"
-          git remote add github https://lemonade-lab:${{ secrets.GITHUB_TOKEN }}@github.com/lemonade-lab/alemonjs-testone.git
-          git push github HEAD:docs -f
+      - name: 发布到 VS Code Marketplace
+        run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  testone:
-    runs-on: ubuntu-latest
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: version 18
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
-
-      - name: set system time
-        id: beijing_time
-        run: echo "BEIJING_TIME=$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
-
-      - name: delete .npmrc
+      - name: 打 tag 并推送
         run: |
-          rm -rf .npmrc
-
-      - name: yarn install
-        run: yarn install --ignore-engines
-
-      - name: build
-        run: yarn build --base /testone/
-
-      - name: push testone
-        run: |
-          cd dist-testone/
-          git init
-          git config --local user.email "ningmengchongshui@gmail.com"
-          git config --local user.name "ningmengchongshui"
-          git add -A
-          git commit -m "自动打包 - ${{ env.BEIJING_TIME }}"
-          git remote add github https://lemonade-lab:${{ secrets.GITHUB_TOKEN }}@github.com/lemonade-lab/alemonjs-testone.git
-          git push github HEAD:testone -f
+          TAG="${{ steps.versioning.outputs.version }}"
+          git tag -f $TAG
+          git push origin $TAG --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
