@@ -45,6 +45,7 @@ import {
   toggleSelectMessage,
   deleteSelectedMessages
 } from '@/frontend/store/slices/chatSlice';
+import { setCurrentUser } from '@/frontend/store/slices/userSlice';
 
 export default function ChatWindow({
   pageType = 'public'
@@ -236,6 +237,10 @@ export default function ChatWindow({
           }
           <div className="border-t border-[--panel-border] pt-2">
             <UserInfo
+              users={users}
+              onSelect={user => {
+                dispatch(setCurrentUser(user));
+              }}
               user={
                 user || {
                   UserId: '',

@@ -24,7 +24,7 @@ const ModalCommandTimer = ({
   commands: CommandLike[];
   onConfirm: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
-  const { time, startIndex, endIndex, loop = true } = values || {};
+  const { time, startIndex, endIndex, loop = false } = values || {};
 
   // 频率合法性判断
   const timeInvalid = !time || Number.isNaN(time) || time < 1 || time > 12;

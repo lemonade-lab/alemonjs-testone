@@ -1,6 +1,8 @@
 // 图片引用存储与规范化工具
 // 目的：将大体积 base64 图片内容转为引用以减少聊天主数组内存和裁剪频率
 
+import { LOCAL_STORAGE_IMAGE_COMPRESSION } from './config';
+
 export interface ImageRefValue {
   hash: string; // 内容哈希
   size: number; // 原/压缩后 base64 长度
@@ -83,9 +85,9 @@ export function storeBase64(b64: string): ImageRefValue | null {
   if (!b64) {
     return null;
   }
-  if (b64.length > MAX_BASE64_LEN) {
-    b64 = b64.slice(0, MAX_BASE64_LEN);
-  }
+  // if (b64.length > MAX_BASE64_LEN) {
+  //   b64 = b64.slice(0, MAX_BASE64_LEN);
+  // }
   const hash = djb2(b64);
   if (!_blobMap.has(hash)) {
     try {
@@ -154,11 +156,31 @@ async function compressBase64IfNeeded(rawB64: string): Promise<string> {
   }
 }
 
+// 开启图片压缩
+export const openImageCompression = () => {
+  localStorage.setItem(LOCAL_STORAGE_IMAGE_COMPRESSION, '1');
+};
+
+// 关闭图片压缩
+export const closeImageCompression = () => {
+  localStorage.removeItem(LOCAL_STORAGE_IMAGE_COMPRESSION);
+};
+
+// 图片压缩开关
+export const isImageCompressionOpen = () => {
+  return localStorage.getItem(LOCAL_STORAGE_IMAGE_COMPRESSION) === '1';
+};
+
 export async function storeBase64WithCompress(
   b64: string
 ): Promise<ImageRefValue | null> {
   if (!b64) {
     return null;
+  }
+  // 是否开启图片压缩
+  const open = isImageCompressionOpen();
+  if (!open) {
+    return storeBase64(b64);
   }
   const processed = await compressBase64IfNeeded(b64);
   return storeBase64(processed);

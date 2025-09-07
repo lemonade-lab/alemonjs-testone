@@ -9,7 +9,7 @@ interface UserState {
 }
 
 const initialState: UserState = {
-  users: [initUser],
+  users: [initUser, initBot],
   bot: initBot,
   current: initUser
 };
@@ -21,26 +21,20 @@ const userSlice = createSlice({
     setUsers(state, action: PayloadAction<User[]>) {
       if (Array.isArray(action.payload)) {
         if (action.payload.length) {
-          state.users = action.payload;
+          state.users = [initBot, initUser, ...action.payload];
         } else {
-          state.users = [initUser];
+          state.users = [initBot, initUser];
         }
-      } else {
-        state.users = [initUser];
       }
     },
     setBot(state, action: PayloadAction<User | undefined>) {
       if (action.payload) {
         state.bot = action.payload;
-      } else {
-        state.bot = initBot;
       }
     },
     setCurrentUser(state, action: PayloadAction<User | undefined>) {
       if (action.payload) {
         state.current = action.payload;
-      } else {
-        state.current = initUser;
       }
     }
   }
