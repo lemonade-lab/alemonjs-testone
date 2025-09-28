@@ -15,6 +15,11 @@ const connectSlice = createSlice({
   name: 'connect',
   initialState,
   reducers: {
+    /**
+     * 加载连接列表
+     * @param state
+     * @returns
+     */
     loadConnects(state) {
       try {
         const data = getConnectList();
@@ -31,6 +36,11 @@ const connectSlice = createSlice({
         state.list = [initConnect];
       }
     },
+    /**
+     * 设置连接列表
+     * @param state
+     * @param action
+     */
     setConnects(state, action: PayloadAction<Connect[]>) {
       if (Array.isArray(action.payload)) {
         if (action.payload.length) {
@@ -42,22 +52,42 @@ const connectSlice = createSlice({
         state.list = [initConnect];
       }
     },
+    /**
+     * 添加连接
+     * @param state
+     * @param action
+     */
     addConnect(state, action: PayloadAction<Connect>) {
       if (action.payload) {
         state.list.unshift(action.payload);
         saveConnect(state.list, '保存成功');
       }
     },
+    /**
+     * 更新连接
+     * @param state
+     * @param action
+     */
     updateConnect(state, action: PayloadAction<Connect>) {
       state.list = state.list.map(c =>
         c.name === action.payload.name ? action.payload : c
       );
       saveConnect(state.list, '保存成功');
     },
+    /**
+     * 删除连接
+     * @param state
+     * @param action
+     */
     deleteConnect(state, action: PayloadAction<string>) {
       state.list = state.list.filter(c => c.name !== action.payload);
       saveConnect(state.list, '删除成功');
     },
+    /**
+     * 把连接放到最前面
+     * @param state
+     * @param action
+     */
     bumpToTop(state, action: PayloadAction<string>) {
       const idx = state.list.findIndex(c => c.name === action.payload);
       if (idx > -1) {

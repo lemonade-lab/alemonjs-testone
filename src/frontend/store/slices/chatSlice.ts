@@ -26,18 +26,43 @@ const chatSlice = createSlice({
   name: 'chat',
   initialState,
   reducers: {
+    /**
+     * 设置当前选项卡
+     * @param state
+     * @param action
+     */
     setTab(state, action: PayloadAction<ChatState['tab']>) {
       state.tab = action.payload;
     },
+    /**
+     * 设置当前选项卡是否群聊
+     * @param state
+     * @param action
+     */
     setIsGroup(state, action: PayloadAction<boolean>) {
       state.isGroup = action.payload;
     },
+    /**
+     * 设置私聊消息
+     * @param state
+     * @param action
+     */
     setPrivateMessages(state, action: PayloadAction<MessageItem[]>) {
       state.privateMessages = action.payload;
     },
+    /**
+     * 设置群聊消息
+     * @param state
+     * @param action
+     */
     setGroupMessages(state, action: PayloadAction<MessageItem[]>) {
       state.groupMessages = action.payload;
     },
+    /**
+     * 追加私聊消息
+     * @param state
+     * @param action
+     */
     appendPrivateMessage(state, action: PayloadAction<MessageItem>) {
       state.privateMessages.push(action.payload);
       if (state.privateMessages.length > MAX_MESSAGES) {
@@ -47,6 +72,11 @@ const chatSlice = createSlice({
         );
       }
     },
+    /**
+     * 追加群聊消息
+     * @param state
+     * @param action
+     */
     appendGroupMessage(state, action: PayloadAction<MessageItem>) {
       state.groupMessages.push(action.payload);
       if (state.groupMessages.length > MAX_MESSAGES) {
@@ -56,6 +86,11 @@ const chatSlice = createSlice({
         );
       }
     },
+    /**
+     * 删除私聊消息
+     * @param state
+     * @param action
+     */
     deletePrivateMessage(
       state,
       action: PayloadAction<{ CreateAt: number; UserId: string }>
@@ -68,6 +103,11 @@ const chatSlice = createSlice({
           )
       );
     },
+    /**
+     * 删除群聊消息
+     * @param state
+     * @param action
+     */
     deleteGroupMessage(
       state,
       action: PayloadAction<{ CreateAt: number; UserId: string }>
@@ -80,20 +120,36 @@ const chatSlice = createSlice({
           )
       );
     },
+    /**
+     * 清除私聊消息
+     * @param state
+     */
     clearPrivateMessages(state) {
       state.privateMessages = [];
     },
+    /**
+     * 清除群聊消息
+     * @param state
+     */
     clearGroupMessages(state) {
       state.groupMessages = [];
     },
-    // 进入或退出选择模式
+    /**
+     * 进入或退出选择模式
+     * @param state
+     * @param action
+     */
     setSelectMode(state, action: PayloadAction<boolean>) {
       state.selectMode = action.payload;
       if (!action.payload) {
         state.selectedKeys = [];
       }
     },
-    // 切换单条消息选择
+    /**
+     * 切换单条消息选择
+     * @param state
+     * @param action
+     */
     toggleSelectMessage(state, action: PayloadAction<MessageItem>) {
       const key = `${action.payload.UserId}:${action.payload.CreateAt}`;
       const exists = state.selectedKeys.includes(key);
@@ -103,7 +159,10 @@ const chatSlice = createSlice({
         state.selectedKeys.push(key);
       }
     },
-    // 批量删除已选择的消息
+    /**
+     * 批量删除已选择的消息
+     * @param state
+     */
     deleteSelectedMessages(state) {
       if (!state.selectedKeys.length) {
         return;

@@ -14,9 +14,18 @@ const themeSlice = createSlice({
   name: 'theme',
   initialState,
   reducers: {
+    /**
+     * 设置主题
+     * @param state
+     * @param action
+     */
     setTheme(state, action: PayloadAction<ThemeType>) {
       state.current = action.payload;
     },
+    /**
+     * 切换主题
+     * @param state
+     */
     toggleTheme(state) {
       state.current = state.current === 'default' ? 'web3' : 'default';
     }

@@ -14,6 +14,11 @@ const commandSlice = createSlice({
   name: 'commands',
   initialState,
   reducers: {
+    /**
+     * 设置命令列表
+     * @param state
+     * @param action
+     */
     setCommands(state, action: PayloadAction<Command[]>) {
       if (Array.isArray(action.payload)) {
         if (action.payload.length) {

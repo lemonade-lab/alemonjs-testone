@@ -5,6 +5,7 @@ export const resolveWebviewView = (
   context: vscode.ExtensionContext
 ) => {
   /**
+   * 读文件
    * @param webviewView
    * @returns
    */
@@ -20,8 +21,17 @@ export const resolveWebviewView = (
       };
     }
   ) => {
+    /**
+     * 显示信息
+     */
     data.message && vscode.window.showInformationMessage(data.message);
+    /**
+     * 读文件
+     */
     const dir = context.asAbsolutePath(data.payload.path);
+    /**
+     * 检查文件是否存在
+     */
     if (!require('fs').existsSync(dir)) {
       const dirPath = require('path').dirname(dir);
       require('fs').mkdirSync(dirPath, {
@@ -36,13 +46,29 @@ export const resolveWebviewView = (
       });
       return;
     }
-    webview.postMessage({
-      type: data.type,
-      payload: {
-        code: data.payload.code,
-        data: JSON.parse(require('fs').readFileSync(dir, 'utf-8'))
-      }
-    });
+    /**
+     * 读文件
+     */
+    try {
+      const content = require('fs').readFileSync(dir, 'utf-8');
+      // 读取返回字符串
+      webview.postMessage({
+        type: data.type,
+        payload: {
+          code: data.payload.code,
+          data: content
+        }
+      });
+    } catch (error) {
+      console.error('读取文件失败:', error);
+      webview.postMessage({
+        type: data.type,
+        payload: {
+          code: data.payload.code,
+          data: null
+        }
+      });
+    }
   };
 
   /**
@@ -59,9 +85,29 @@ export const resolveWebviewView = (
       data?: string | null;
     };
   }) => {
-    const dir = context.asAbsolutePath(data.payload.path);
-    require('fs').writeFileSync(dir, JSON.stringify(data.payload.data));
-    data.message && vscode.window.showInformationMessage(data.message);
+    try {
+      // 显示信息
+      data.message && vscode.window.showInformationMessage(data.message);
+      /**
+       * 写文件
+       */
+      const dir = context.asAbsolutePath(data.payload.path);
+      /**
+       * 获取文件目录
+       */
+      const dirPath = require('path').dirname(dir);
+      /**
+       * 确保目录存在
+       */
+      if (!require('fs').existsSync(dirPath)) {
+        require('fs').mkdirSync(dirPath, { recursive: true });
+      }
+      // 直接写入字符串
+      require('fs').writeFileSync(dir, data.payload.data);
+    } catch (error: any) {
+      console.error('写入文件失败:', error);
+      vscode.window.showErrorMessage(`写入文件失败: ${error.message}`);
+    }
   };
 
   /**
@@ -79,6 +125,8 @@ export const resolveWebviewView = (
   // 监听webview发送的消息
   webview.onDidReceiveMessage(
     message => {
+      // 存储前缀
+      const prefix = 'dist/';
       switch (message.type) {
         // 显示通知
         case 'window.showInformationMessage': {
@@ -92,7 +140,7 @@ export const resolveWebviewView = (
             message: message.message,
             payload: {
               code: message.payload.code,
-              path: `dist/${message.payload.path}`,
+              path: `${prefix}${message.payload.path}`,
               data: null
             }
           });
@@ -105,10 +153,26 @@ export const resolveWebviewView = (
             message: message.message,
             payload: {
               code: message.payload?.code,
-              path: `dist/${message.payload.path}`,
+              path: `${prefix}${message.payload.path}`,
               data: message.payload.data
             }
           });
+          break;
+        }
+        // 删除文件
+        case 'fs.deleteFile': {
+          const dir = context.asAbsolutePath(
+            `${prefix}${message.payload.path}`
+          );
+          try {
+            if (require('fs').existsSync(dir)) {
+              require('fs').unlinkSync(dir);
+              console.log('文件删除成功:', dir);
+            }
+          } catch (error: any) {
+            console.error('删除文件失败:', error);
+            vscode.window.showErrorMessage(`删除文件失败: ${error.message}`);
+          }
           break;
         }
       }

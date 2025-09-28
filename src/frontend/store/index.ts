@@ -8,7 +8,7 @@ import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
 
 // slices
 import socketReducer from '@/frontend/store/slices/socketSlice';
-import userReducer from '@/frontend/store/slices/userSlice';
+import userReducer, { setUserInitial } from '@/frontend/store/slices/userSlice';
 import channelReducer from '@/frontend/store/slices/channelSlice';
 import commandReducer from '@/frontend/store/slices/commandSlice';
 import chatReducer, {
@@ -69,6 +69,7 @@ function safeSend(obj: any) {
     return false;
   }
   try {
+    // ws 的 字符串用 flattedJSON
     ws.send(flattedJSON.stringify(obj));
     return true;
   } catch (e) {
@@ -226,6 +227,7 @@ export const wsMiddleware: Middleware<{}, any> = store => next => action => {
 
     ws.onmessage = (e: MessageEvent) => {
       try {
+        // ws的解析用 flattedJSON
         const data = flattedJSON.parse(e.data.toString());
         handleServerPayload(store, data);
       } catch (err) {
@@ -351,20 +353,17 @@ function handleServerPayload(store: any, receivedData: any) {
     case 'init.data': {
       const { commands, users, channels, user, bot } =
         receivedData.payload || {};
-      if (users) {
-        store.dispatch(setUsers(users));
+
+      if (user || bot || users) {
+        store.dispatch(
+          setUserInitial({ current: user, bot, users: users || [] })
+        );
       }
       if (channels) {
         store.dispatch(setChannels(channels));
       }
       if (commands) {
         store.dispatch(setCommands(commands));
-      }
-      if (user) {
-        store.dispatch(setCurrentUser(user));
-      }
-      if (bot) {
-        store.dispatch(setBot(bot));
       }
       return;
     }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ACTIONS_MAP } from '../config';
 import {
-  PATH_CHAT_CODE,
+  PATH_CHAT_CHANNEL_CODE,
   PATH_CHAT_PRIVATE_CODE,
   PATH_CONNECT_CODE
 } from '../core/config';
@@ -27,8 +27,14 @@ const useVSCode = () => {
      * @param code
      * @param data
      */
-    const readFile = (code: number, data: any) => {
+    const readFile = (code: number, dataStr: string) => {
       try {
+        if (!dataStr) {
+          console.warn('文件数据为空');
+          return;
+        }
+        const data = JSON.parse(dataStr);
+
         switch (code) {
           case PATH_CONNECT_CODE: // 连接列表
             if (data && Array.isArray(data)) {
@@ -37,14 +43,14 @@ const useVSCode = () => {
               }
             }
             break;
-          case PATH_CHAT_CODE: // 私聊消息
-            dispatch(setPrivateMessages(data || []));
-            break;
-          case PATH_CHAT_PRIVATE_CODE: // 群聊消息
+          case PATH_CHAT_CHANNEL_CODE: // 群聊消息
             dispatch(setGroupMessages(data || []));
             break;
+          case PATH_CHAT_PRIVATE_CODE: // 私聊消息
+            dispatch(setPrivateMessages(data || []));
+            break;
           default: {
-            console.warn('未知的文件代码:', code);
+            console.warn('未知的文件代码:', code, dataStr);
           }
         }
       } catch (error) {

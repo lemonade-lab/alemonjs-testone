@@ -59,7 +59,7 @@ export default function ChatWindow({
   );
   const { connected: status } = useAppSelector(s => s.socket);
   const { channels, current: channel } = useAppSelector(s => s.channels);
-  const { users, bot, current: user } = useAppSelector(s => s.users);
+  const { users, current: user } = useAppSelector(s => s.users);
   const { commands } = useAppSelector(s => s.commands);
   const { selectMode, selectedKeys } = useAppSelector(s => s.chat);
 
@@ -76,10 +76,11 @@ export default function ChatWindow({
   const headerMessage = useAppSelector(selectHeader);
 
   const onSendFormat = useCallback(
-    (format: DataEnums[], { curchannel = channel, curuser = bot } = {}) => {
+    (format: DataEnums[], { curchannel = channel, curuser = user } = {}) => {
       if (pageType === 'public') {
         if (!curchannel) return;
         dispatch(
+          // 群里发送
           sendGroupFormat({
             currentChannel: curchannel,
             content: format
@@ -87,6 +88,7 @@ export default function ChatWindow({
         );
       } else {
         if (!curuser) return;
+        //
         dispatch(
           sendPrivateFormat({
             currentUser: curuser,
@@ -95,18 +97,18 @@ export default function ChatWindow({
         );
       }
     },
-    [pageType, channel, bot, dispatch]
+    [pageType, channel, user, dispatch]
   );
 
   const onSend = useCallback(
-    (text: string, { curchannel = channel, curuser = bot } = {}) => {
+    (text: string, { curchannel = channel, curuser = user } = {}) => {
       parseMessageSmart({ input: text, users, channels }).then(
         (content: any) => {
           onSendFormat(content, { curchannel, curuser });
         }
       );
     },
-    [users, channels, onSendFormat, channel, bot]
+    [users, channels, onSendFormat, channel, user]
   );
 
   const onDelete = useCallback(
@@ -161,7 +163,7 @@ export default function ChatWindow({
   );
 
   const onCommand = useCallback(
-    (command: Command, { curchannel = channel, curuser = bot } = {}) => {
+    (command: Command, { curchannel = channel, curuser = user } = {}) => {
       if (!status) {
         Message.warning('连接已断开，无法执行指令');
         return;
@@ -172,7 +174,7 @@ export default function ChatWindow({
       }
       onSendFormat(command.data, { curchannel, curuser });
     },
-    [status, onSend, onSendFormat, channel, bot]
+    [status, onSend, onSendFormat, channel, user]
   );
 
   const handleChannelSelect = useMemo(

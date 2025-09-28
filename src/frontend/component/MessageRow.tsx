@@ -80,6 +80,10 @@ const MessageRow = memo(
       prevProps.item.CreateAt === nextProps.item.CreateAt &&
       prevProps.selected === nextProps.selected &&
       prevProps.selectMode === nextProps.selectMode;
+    // isOwnMessage 变化了也要重新渲染
+    if (prevProps.isOwnMessage !== nextProps.isOwnMessage) {
+      return false;
+    }
     return isSame;
   }
 );

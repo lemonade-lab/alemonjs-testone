@@ -12,7 +12,7 @@ export const getConnectList = (): Connect[] | null => {
     return data ? JSON.parse(data) : null;
   }
   // 读取连接配置列表
-  vscode.postMessage({
+  window.vscode.postMessage({
     type: 'fs.readFile',
     payload: {
       code: PATH_CONNECT_CODE,
@@ -28,13 +28,14 @@ export const saveConnect = (data: Connect[], message?: string) => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
     return;
   }
-  vscode.postMessage({
+  window.vscode.postMessage({
     type: 'fs.writeFile',
     message: message,
     payload: {
       code: PATH_CONNECT_CODE,
       path: PATH_CONNECT_LIST,
-      data: data
+      // 直接传入字符串
+      data: JSON.stringify(data)
     }
   });
 };

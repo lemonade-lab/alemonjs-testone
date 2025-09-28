@@ -16,6 +16,11 @@ const channelSlice = createSlice({
   name: 'channels',
   initialState,
   reducers: {
+    /**
+     * 设置频道列表
+     * @param state
+     * @param action
+     */
     setChannels(state, action: PayloadAction<Channel[]>) {
       if (Array.isArray(action.payload)) {
         if (action.payload.length) {
@@ -27,6 +32,11 @@ const channelSlice = createSlice({
         state.channels = [initChannel];
       }
     },
+    /**
+     * 设置当前频道
+     * @param state
+     * @param action
+     */
     setCurrentChannel(state, action: PayloadAction<Channel | undefined>) {
       state.current = action.payload;
     }

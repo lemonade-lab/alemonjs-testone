@@ -11,9 +11,9 @@ vsce package
 # 本地加载
 code --install-extension <path-to-vsix-file>
 # 账户
-# https://dev.azure.com/lemonadex/alemonjs
+# https://dev.azure.com/lemonadex/_usersSettings/tokens
 # 点击personal access token创建令牌
 # 登录
-vsce login lemonade-x
+vsce login lemonadex
 vsce publish
 ```

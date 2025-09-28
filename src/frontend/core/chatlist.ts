@@ -1,7 +1,6 @@
-import * as flattedJSON from 'flatted';
 import {
   LOCAL_STORAGE_KEY,
-  PATH_CHAT_CODE,
+  PATH_CHAT_CHANNEL_CODE,
   PATH_CHAT_PRIVATE_CODE,
   PATH_CHATS
 } from './config';
@@ -199,7 +198,7 @@ function roughUsageBytes(): number {
 }
 
 function serialize(data: any): string {
-  const raw = flattedJSON.stringify(data);
+  const raw = JSON.stringify(data);
   if (!CFG.COMPRESS) {
     return raw; // 预留压缩点
   }
@@ -212,10 +211,10 @@ function deserialize(str: string | null) {
   }
   if (CFG.COMPRESS && str.startsWith('C:')) {
     const body = str.slice(2);
-    return flattedJSON.parse(body);
+    return JSON.parse(body);
   }
   try {
-    return flattedJSON.parse(str);
+    return JSON.parse(str);
   } catch (e) {
     console.error('[chatlist] 解析失败', e);
     return null;
@@ -311,11 +310,14 @@ function evictChats(requiredFreeBytes: number, proactive: boolean) {
 }
 
 export function getChatList(opts: ChatListKeyOptions): any {
-  if ((window as any).vscode) {
-    (window as any).vscode.postMessage({
+  if (window.vscode) {
+    window.vscode.postMessage({
       type: 'fs.readFile',
       payload: {
-        type: opts.type === 'public' ? PATH_CHAT_CODE : PATH_CHAT_PRIVATE_CODE,
+        code:
+          opts.type === 'public'
+            ? PATH_CHAT_CHANNEL_CODE
+            : PATH_CHAT_PRIVATE_CODE,
         path: `${PATH_CHATS}/${opts.type}/${opts.chatId}.json`
       }
     });
@@ -571,18 +573,22 @@ export function saveChatList(
 
   // 写入存储（根据环境）
   try {
-    const persistPayload = flattedJSON.stringify(currentData);
-    if ((window as any).vscode) {
-      (window as any).vscode.postMessage({
+    if (window.vscode) {
+      // VSCode环境：发送原始数据，让后端用JSON序列化
+      window.vscode.postMessage({
         type: 'fs.writeFile',
         payload: {
           code:
-            opts.type === 'public' ? PATH_CHAT_CODE : PATH_CHAT_PRIVATE_CODE,
+            opts.type === 'public'
+              ? PATH_CHAT_CHANNEL_CODE
+              : PATH_CHAT_PRIVATE_CODE,
           path: `${PATH_CHATS}/${opts.type}/${opts.chatId}.json`,
-          data: persistPayload
+          // 直接传入字符串
+          data: JSON.stringify(currentData)
         }
       });
     } else {
+      const persistPayload = JSON.stringify(currentData);
       localStorage.setItem(key, persistPayload);
     }
   } catch (e) {

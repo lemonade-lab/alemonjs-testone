@@ -39,40 +39,80 @@ const socketSlice = createSlice({
   name: 'socket',
   initialState,
   reducers: {
+    /**
+     * 请求连接
+     * @param state
+     * @param action
+     */
     wsConnectRequest(state, action: PayloadAction<Connect>) {
       state.isConnecting = true;
       state.lastConfig = action.payload;
       state.error = undefined;
     },
+    /**
+     * 连接成功
+     * @param state
+     */
     wsConnected(state) {
       state.connected = true;
       state.isConnecting = false;
       state.isRestarting = false;
       state.reconnectAttempts = 0;
     },
+    /**
+     * 连接断开
+     * @param state
+     */
     wsDisconnected(state) {
       state.connected = false;
       state.isConnecting = false;
       state.isRestarting = false; // 断开时清理重启状态，避免无限 loading
     },
+    /**
+     * 设置错误
+     * @param state
+     * @param action
+     */
     wsSetError(state, action: PayloadAction<string | undefined>) {
       state.error = action.payload;
     },
+    /**
+     * 设置是否允许重启
+     * @param state
+     * @param action
+     */
     wsSetAllowRestart(state, action: PayloadAction<boolean>) {
       state.allowRestart = action.payload;
     },
+    /**
+     * 计划重启
+     * @param state
+     */
     wsScheduleRestart(state) {
       state.isRestarting = true;
     },
+    /**
+     * 增加重连次数
+     * @param state
+     */
     wsIncReconnect(state) {
       state.reconnectAttempts += 1;
     },
+    /**
+     * 取消连接
+     * @param state
+     */
     wsCancel(state) {
       state.isConnecting = false;
       state.isRestarting = false; // 取消时同时清除重启 loading 状态
       state.allowRestart = false;
       state.persistentReconnect = false; // 取消时关闭持久重连
     },
+    /**
+     * 设置是否自动连接
+     * @param state
+     * @param action
+     */
     setAutoConnectEnabled(state, action: PayloadAction<boolean>) {
       state.autoConnectEnabled = action.payload;
       try {
@@ -82,7 +122,11 @@ const socketSlice = createSlice({
         );
       } catch {}
     },
-    // 设置是否持久重连（仅用户手动发起的连接）
+    /**
+     * 设置是否持久重连（仅用户手动发起的连接）
+     * @param state
+     * @param action
+     */
     wsSetPersistent(state, action: PayloadAction<boolean>) {
       state.persistentReconnect = action.payload;
     }
