@@ -27,10 +27,16 @@ jobs:
           echo "错误: 该工作流只能在 main 分支上运行。"
           exit 1
 
-      - name: 设置Node.js
+      - name: version 22
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+
+      - name: 缓存依赖
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-testone-${{ hashFiles('yarn.lock') }}
 
       - name: 安装依赖项
         run: npm ci

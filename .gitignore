@@ -29,6 +29,5 @@ dist-ssr
 *.sw?
 
 # npm
-yarn.lock
 node_modules
 output
