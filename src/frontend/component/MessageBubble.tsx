@@ -88,8 +88,22 @@ const MENTION_TYPES: Record<
 
 // ---------------- Markdown Renderers ----------------
 const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
-  'MD.title': md => <h1>{safeString(md.value).slice(0, 200)}</h1>,
-  'MD.subtitle': md => <h2>{safeString(md.value).slice(0, 200)}</h2>,
+  'MD.title': md => (
+    <>
+      <span className="text-xl font-bold">
+        {safeString(md.value).slice(0, 200)}
+      </span>
+      <br />
+    </>
+  ),
+  'MD.subtitle': md => (
+    <>
+      <span className="text-lg font-semibold">
+        {safeString(md.value).slice(0, 200)}
+      </span>
+      <br />
+    </>
+  ),
   'MD.blockquote': md => (
     <blockquote>{safeString(md.value).slice(0, 500)}</blockquote>
   ),
@@ -116,12 +130,15 @@ const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
     const w = Number(md.options?.width) || 100;
     const h = Number(md.options?.height) || 100;
     return (
-      <Zoom
-        style={{ width: `${w}px`, height: `${h}px` }}
-        className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
-        src={url}
-        alt="image"
-      />
+      <>
+        <Zoom
+          style={{ width: `${w}px`, height: `${h}px` }}
+          className="max-w-[15rem] xl:max-w-[20rem] rounded-md"
+          src={url}
+          alt="image"
+        />
+        <br />
+      </>
     );
   },
   'MD.italic': md => <em>{safeString(md.value).slice(0, 500)}</em>,
@@ -312,14 +329,14 @@ const renderMarkdown = (item: any): React.ReactNode => {
   try {
     const markdown = Array.isArray(item?.value) ? item.value : [];
     return (
-      <div className="mb-2 flex flex-col gap-1">
+      <div className="mb-2">
         {markdown.slice(0, 200).map((md: any, i: number) => {
           if (!md || typeof md !== 'object') return null;
           const type = safeString(md.type);
           const renderer = MARKDOWN_RENDERERS[type];
           if (!renderer) return null;
           try {
-            return <div key={i}>{renderer(md)}</div>;
+            return renderer(md);
           } catch (err) {
             console.warn('markdown item render error', err);
             return null;
@@ -430,7 +447,7 @@ const MessageBubble = ({
 
   return (
     <div className="flex items-end">
-      <div className="message-bubble rounded-md py-1 flex relative px-2 shadow-md bg-[var(--panel-background)]">
+      <div className="message-bubble rounded-md py-1 flex flex-col relative px-2 shadow-md bg-[var(--panel-background)]">
         {renderedItems}
         <span className="absolute -bottom-3 whitespace-nowrap right-0 text-[0.5rem]">
           {formattedTime}
