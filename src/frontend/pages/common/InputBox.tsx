@@ -1,13 +1,12 @@
 import * as _ from 'lodash-es';
-import Textarea from '@/frontend/component/Textarea';
+import SlateTextarea from '@/frontend/component/SlateTextarea';
 import CommandList from '@/frontend/component/CommandList';
 import PopoverBox from '@/frontend/ui/PopoverBox';
-
 import ClearOutlined from '@ant-design/icons/ClearOutlined';
 import OrderedListOutlined from '@ant-design/icons/OrderedListOutlined';
 import KeyOutlined from '@ant-design/icons/KeyOutlined';
 import { useState } from 'react';
-import { Command, User } from '@/frontend/typing';
+import { Command, User, Channel } from '@/frontend/typing';
 import {
   closeImageCompression,
   isImageCompressionOpen,
@@ -16,11 +15,13 @@ import {
 import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
 import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
 import { Message } from '@/frontend/core/message';
+import type { Descendant } from 'slate';
 
 const InputBox = ({
   value,
   commands,
   userList,
+  channelList,
   onInput,
   onSend,
   onClear,
@@ -28,12 +29,15 @@ const InputBox = ({
   onCommand,
   onTimer,
   onCancelSelect,
+  onSlateChange,
+  getSlateValue,
   selectMode = false,
   selectedCount = 0
 }: {
   value: string;
   commands: Command[];
   userList: User[];
+  channelList?: Channel[];
   onInput: (value: string) => void;
   onSend: () => void;
   onClear: () => void;
@@ -41,6 +45,8 @@ const InputBox = ({
   onCommand: (command: Command) => void;
   onTimer: () => void;
   onCancelSelect?: () => void;
+  onSlateChange?: (nodes: Descendant[]) => void;
+  getSlateValue?: React.MutableRefObject<() => Descendant[]>;
   selectMode?: boolean;
   selectedCount?: number;
 }) => {
@@ -118,9 +124,11 @@ const InputBox = ({
           </div>
         </div>
       </PopoverBox>
-      <Textarea
+      <SlateTextarea
         value={value}
         onContentChange={onInput}
+        onSlateChange={onSlateChange}
+        getSlateValue={getSlateValue}
         onClickSend={onSend}
         onAppClick={action => {
           if (action === 'commands') {
@@ -131,6 +139,7 @@ const InputBox = ({
           }
         }}
         userList={userList}
+        channelList={channelList}
       />
     </div>
   );

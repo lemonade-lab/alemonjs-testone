@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense, useRef } from 'react';
 import { DataEnums } from 'alemonjs';
+import type { Descendant } from 'slate';
 import * as _ from 'lodash-es';
 import { Channel, Command, MessageItem } from '@/frontend/typing';
 import {
@@ -36,6 +37,7 @@ import {
 import { setCurrentChannel } from '@/frontend/store/slices/channelSlice';
 import useCommandTimer from '@/frontend/hook/useCommandTimer';
 import { parseMessageSmart } from '../../core/asyncParse';
+import { serializeToDataEnums } from '@/frontend/component/slate/serialize';
 import UserInfo from '../common/UserInfo';
 import SidebarCommandList from '@/frontend/component/SidebarCommandList';
 import InputBox from '../common/InputBox';
@@ -137,6 +139,8 @@ export default function ChatWindow({
   );
 
   const [value, onInput] = useState('');
+  const getSlateValueRef = useRef<() => Descendant[]>(() => []);
+  const [slateNodes, setSlateNodes] = useState<Descendant[] | null>(null);
 
   const handleCommand = useMemo(
     () =>
@@ -312,9 +316,24 @@ export default function ChatWindow({
           value={value}
           commands={commands}
           userList={userList}
+          channelList={channels}
           onInput={onInput}
+          onSlateChange={setSlateNodes}
+          getSlateValue={getSlateValueRef}
           onSend={() => {
-            if (value.trim()) {
+            // 优先使用 Slate 文档直接序列化 (无需正则解析)
+            const nodes = getSlateValueRef.current();
+            if (nodes && nodes.length > 0) {
+              const content = serializeToDataEnums(nodes, users, channels);
+              if (
+                content.length > 0 &&
+                content.some(c => c.type !== 'Text' || c.value.trim())
+              ) {
+                onSendFormat(content);
+                onInput('');
+              }
+            } else if (value.trim()) {
+              // 回退: 纯文本走旧路径
               onSend(value);
               onInput('');
             }
