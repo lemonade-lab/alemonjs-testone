@@ -22,10 +22,20 @@ import chatReducer, {
   setPrivateMessages,
   setTab
 } from '@/frontend/store/slices/chatSlice';
-import { deleteSelectedMessages } from '@/frontend/store/slices/chatSlice';
+import {
+  deleteSelectedMessages,
+  addReaction,
+  updateMessage
+} from '@/frontend/store/slices/chatSlice';
 
 import connectReducer from '@/frontend/store/slices/connectSlice';
 import themeReducer from '@/frontend/store/slices/themeSlice';
+import notificationReducer, {
+  addNotification
+} from '@/frontend/store/slices/notificationSlice';
+import eventLogReducer, {
+  addLogEntry
+} from '@/frontend/store/slices/eventLogSlice';
 
 import {
   wsConnectRequest,
@@ -62,7 +72,40 @@ let ws: WebSocket | null = null;
 let reconnectTimer: any = null;
 let connectTimeoutTimer: any = null; // 新增：连接超时计时器
 
+// ---------------- 耗时追踪 ----------------
+/** 记录发送消息的时间戳，用于计算响应耗时 */
+const pendingSendTimestamps: Map<string, number> = new Map();
+const MAX_PENDING = 100;
+
+function trackSend(eventType: string) {
+  // 用事件类型作 key（简化的相关性追踪）
+  const key = eventType;
+  pendingSendTimestamps.set(key, Date.now());
+  if (pendingSendTimestamps.size > MAX_PENDING) {
+    // 清理最老的
+    const first = pendingSendTimestamps.keys().next().value;
+    if (first) pendingSendTimestamps.delete(first);
+  }
+}
+
+function getLatency(recvEventType: string): number | undefined {
+  // 映射接收事件到发送事件
+  const LATENCY_MAP: Record<string, string> = {
+    'message.send': 'message.create',
+    'message.reaction.add': 'message.reaction.add',
+    'message.update': 'message.update'
+  };
+  const sendKey = LATENCY_MAP[recvEventType];
+  if (!sendKey) return undefined;
+  const sendTime = pendingSendTimestamps.get(sendKey);
+  if (!sendTime) return undefined;
+  pendingSendTimestamps.delete(sendKey);
+  return Date.now() - sendTime;
+}
+
 // ---------------- 工具函数 ----------------
+let _storeRef: any = null;
+
 function safeSend(obj: any) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn('WS 未连接，发送失败');
@@ -71,6 +114,19 @@ function safeSend(obj: any) {
   try {
     // ws 的 字符串用 flattedJSON
     ws.send(flattedJSON.stringify(obj));
+    // 记录发送事件到日志
+    const eventType = obj.type || obj.name || obj.action || 'unknown';
+    trackSend(eventType);
+    if (_storeRef) {
+      _storeRef.dispatch(
+        addLogEntry({
+          timestamp: Date.now(),
+          direction: 'send',
+          eventType,
+          payload: obj
+        })
+      );
+    }
     return true;
   } catch (e) {
     console.error('发送失败', e);
@@ -166,6 +222,7 @@ listenerMiddleware.startListening({
 
 // ---------------- WebSocket Middleware ----------------
 export const wsMiddleware: Middleware<{}, any> = store => next => action => {
+  _storeRef = store;
   const result = next(action);
 
   if (wsConnectRequest.match(action)) {
@@ -229,6 +286,18 @@ export const wsMiddleware: Middleware<{}, any> = store => next => action => {
       try {
         // ws的解析用 flattedJSON
         const data = flattedJSON.parse(e.data.toString());
+        // 记录接收事件到日志
+        const eventType = data.type || data.action || 'unknown';
+        const latency = getLatency(eventType);
+        store.dispatch(
+          addLogEntry({
+            timestamp: Date.now(),
+            direction: 'receive',
+            eventType,
+            payload: data,
+            latency
+          })
+        );
         handleServerPayload(store, data);
       } catch (err) {
         console.error('WS 消息解析失败', err);
@@ -434,6 +503,128 @@ async function handleAction(store: any, data: any) {
     } catch (e) {
       console.error('处理 mentions 失败', e);
     }
+  } else if (data.action === 'message.reaction.add') {
+    // 服务端发来的表情回应事件
+    try {
+      const event = data.payload?.event;
+      const emoji = data.payload?.params?.emoji || event?.MessageText || '';
+      const targetCreateAt = event?.CreateAt;
+      const targetUserId = event?.UserId;
+      if (emoji && targetCreateAt && targetUserId) {
+        const scope = /private/.test(event?.name || '') ? 'private' : 'group';
+        store.dispatch(
+          addReaction({
+            scope,
+            CreateAt: targetCreateAt,
+            UserId: targetUserId,
+            emoji,
+            reactUserId: bot?.UserId || 'bot'
+          })
+        );
+      }
+    } catch (e) {
+      console.error('处理 reaction 失败', e);
+    }
+  } else if (data.action === 'message.update') {
+    // 处理消息编辑事件
+    try {
+      const UpdateAt = data.payload?.event?.UpdateAt || Date.now();
+      const targetCreateAt = data.payload?.event?.CreateAt;
+      const targetUserId = data.payload?.event?.UserId;
+      const updatedFormat =
+        data.payload?.params?.format || data.payload?.event?.value || [];
+
+      if (targetCreateAt && targetUserId) {
+        const scope = /private/.test(data.payload?.event?.name || '')
+          ? 'private'
+          : 'group';
+        store.dispatch(
+          updateMessage({
+            scope,
+            CreateAt: targetCreateAt,
+            UserId: targetUserId,
+            data: updatedFormat
+          })
+        );
+      }
+    } catch (e) {
+      console.error('处理 message.update 失败', e);
+    }
+  } else if (data.action === 'notice.create') {
+    // 系统通知事件
+    try {
+      const title = data.payload?.event?.title || '系统通知';
+      const content =
+        data.payload?.event?.content ||
+        data.payload?.params?.content ||
+        JSON.stringify(data.payload);
+      store.dispatch(
+        addNotification({
+          type: 'notice',
+          title,
+          content
+        })
+      );
+    } catch (e) {
+      console.error('处理 notice 失败', e);
+    }
+  } else if (/^(member\.|channel\.|guild\.)/.test(data.action || '')) {
+    // 成员/频道/公会事件通知
+    try {
+      let title = '系统更新';
+      let type: 'member_change' | 'channel_change' | 'guild_change' =
+        'member_change';
+      let content = '收到系统event';
+
+      const eventName = data.payload?.event?.name || '';
+
+      if (eventName.includes('member')) {
+        type = 'member_change';
+        const memberAction = eventName.split('.')[1];
+        const userName = data.payload?.event?.UserName || '用户';
+        const titleMap: Record<string, string> = {
+          add: '新成员加入',
+          remove: '成员移除',
+          ban: '成员被禁言',
+          unban: '成员解除禁言',
+          update: '成员信息更新'
+        };
+        title = titleMap[memberAction] || '成员变化';
+        content = `${userName} (${data.payload?.event?.UserId})`;
+      } else if (eventName.includes('channel')) {
+        type = 'channel_change';
+        const channelAction = eventName.split('.')[1];
+        const channelName = data.payload?.event?.ChannelName || '频道';
+        const titleMap: Record<string, string> = {
+          create: '频道已创建',
+          delete: '频道已删除',
+          update: '频道已更新'
+        };
+        title = titleMap[channelAction] || '频道变化';
+        content = channelName;
+      } else if (eventName.includes('guild')) {
+        type = 'guild_change';
+        const guildAction = eventName.split('.')[1];
+        const guildName = data.payload?.event?.GuildName || '公会';
+        const titleMap: Record<string, string> = {
+          join: '已加入公会',
+          exit: '已离开公会',
+          update: '公会已更新'
+        };
+        title = titleMap[guildAction] || '公会变化';
+        content = guildName;
+      }
+
+      store.dispatch(
+        addNotification({
+          type,
+          title,
+          content
+        })
+      );
+    } catch (e) {
+      console.error('处理 event 通知失败', e);
+    }
   }
 }
 
@@ -530,7 +721,9 @@ export const store = configureStore({
     commands: commandReducer,
     chat: chatReducer,
     connect: connectReducer,
-    theme: themeReducer
+    theme: themeReducer,
+    notification: notificationReducer,
+    eventLog: eventLogReducer
   },
   middleware: getDefault =>
     getDefault({

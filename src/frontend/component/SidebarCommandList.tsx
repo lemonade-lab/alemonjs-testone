@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Command } from '@/frontend/typing';
+import SearchOutlined from '@ant-design/icons/SearchOutlined';
 import CommandItem from './CommandItem';
 
 /**
- * 侧栏指令列表（带分页, 每页50）
+ * 侧栏指令列表（带搜索和分页, 每页50）
  */
 const PAGE_SIZE = 50;
 
@@ -15,21 +16,33 @@ export default function SidebarCommandList({
   onCommandSelect: (c: Command) => void;
 }) {
   const [page, setPage] = useState(0);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return commands;
+    const q = search.toLowerCase();
+    return commands.filter(
+      c =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.text.toLowerCase().includes(q)
+    );
+  }, [commands, search]);
+
   const totalPages = useMemo(
-    () => Math.ceil(commands.length / PAGE_SIZE) || 1,
-    [commands.length]
+    () => Math.ceil(filtered.length / PAGE_SIZE) || 1,
+    [filtered.length]
   );
 
   if (page > 0 && page >= totalPages) {
-    // 直接修正即可
     setPage(totalPages - 1);
   }
 
   const pageCommands = useMemo(() => {
-    if (commands.length <= PAGE_SIZE) return commands;
+    if (filtered.length <= PAGE_SIZE) return filtered;
     const start = page * PAGE_SIZE;
-    return commands.slice(start, start + PAGE_SIZE);
-  }, [commands, page]);
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const handlePrev = useCallback(() => {
     setPage(p => Math.max(0, p - 1));
@@ -47,10 +60,23 @@ export default function SidebarCommandList({
     );
   }
 
-  const hasPagination = commands.length > PAGE_SIZE;
+  const hasPagination = filtered.length > PAGE_SIZE;
 
   return (
     <div className="flex flex-col mt-2 rounded-md gradient-border p-1 text-xs overflow-hidden">
+      {/* 搜索框 */}
+      <div className="flex items-center gap-1 px-1 py-0.5 border-b border-[var(--dropdown-border)]">
+        <SearchOutlined className="text-[var(--descriptionForeground)]" />
+        <input
+          className="flex-1 bg-transparent outline-none text-[var(--foreground)]"
+          placeholder="搜索指令..."
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            setPage(0);
+          }}
+        />
+      </div>
       <div className="overflow-y-auto scrollbar flex-1">
         {pageCommands.map((command, index) => (
           <CommandItem
@@ -60,6 +86,11 @@ export default function SidebarCommandList({
           />
         ))}
       </div>
+      {filtered.length === 0 && search.trim() && (
+        <div className="text-center text-[var(--descriptionForeground)] py-2">
+          未找到匹配指令
+        </div>
+      )}
       {hasPagination && (
         <div className="flex items-center justify-center gap-2 pt-1 border-t border-[var(--dropdown-border)] mt-1 select-none">
           <button

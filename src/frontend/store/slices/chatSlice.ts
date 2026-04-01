@@ -1,11 +1,11 @@
-import { MessageItem } from '@/frontend/typing';
+import { MessageItem, Reaction } from '@/frontend/typing';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface ChatState {
   privateMessages: MessageItem[];
   groupMessages: MessageItem[];
   isGroup: boolean; // 当前 tab 是否群聊
-  tab: 'connect' | 'group' | 'private';
+  tab: 'connect' | 'group' | 'private' | 'help' | 'config';
   selectMode: boolean; // 是否处于选择删除模式
   selectedKeys: string[]; // 被选中的消息 key
 }
@@ -176,6 +176,87 @@ const chatSlice = createSlice({
       );
       state.selectedKeys = [];
       state.selectMode = false;
+    },
+    /**
+     * 添加表情回应
+     */
+    addReaction(
+      state,
+      action: PayloadAction<{
+        scope: 'group' | 'private';
+        CreateAt: number;
+        UserId: string;
+        emoji: string;
+        reactUserId: string;
+      }>
+    ) {
+      const { scope, CreateAt, UserId, emoji, reactUserId } = action.payload;
+      const messages =
+        scope === 'group' ? state.groupMessages : state.privateMessages;
+      const msg = messages.find(
+        m => m.CreateAt === CreateAt && m.UserId === UserId
+      );
+      if (!msg) return;
+      if (!msg.reactions) msg.reactions = [];
+      const existing = msg.reactions.find(r => r.emoji === emoji);
+      if (existing) {
+        if (!existing.users.includes(reactUserId)) {
+          existing.users.push(reactUserId);
+        }
+      } else {
+        msg.reactions.push({ emoji, users: [reactUserId] });
+      }
+    },
+    /**
+     * 移除表情回应
+     */
+    removeReaction(
+      state,
+      action: PayloadAction<{
+        scope: 'group' | 'private';
+        CreateAt: number;
+        UserId: string;
+        emoji: string;
+        reactUserId: string;
+      }>
+    ) {
+      const { scope, CreateAt, UserId, emoji, reactUserId } = action.payload;
+      const messages =
+        scope === 'group' ? state.groupMessages : state.privateMessages;
+      const msg = messages.find(
+        m => m.CreateAt === CreateAt && m.UserId === UserId
+      );
+      if (!msg || !msg.reactions) return;
+      const existing = msg.reactions.find(r => r.emoji === emoji);
+      if (existing) {
+        existing.users = existing.users.filter(u => u !== reactUserId);
+        if (existing.users.length === 0) {
+          msg.reactions = msg.reactions.filter(r => r.emoji !== emoji);
+        }
+      }
+    },
+    /**
+     * 编辑消息
+     */
+    updateMessage(
+      state,
+      action: PayloadAction<{
+        scope: 'group' | 'private';
+        CreateAt: number;
+        UserId: string;
+        data: any;
+      }>
+    ) {
+      const { scope, CreateAt, UserId, data } = action.payload;
+      const messages =
+        scope === 'group' ? state.groupMessages : state.privateMessages;
+      const msg = messages.find(
+        m => m.CreateAt === CreateAt && m.UserId === UserId
+      );
+      if (!msg) return;
+      msg.data = data;
+      msg.UpdateAt = Date.now();
+      msg.IsEdited = true;
     }
   }
 });
@@ -193,7 +274,10 @@ export const {
   clearGroupMessages,
   setSelectMode,
   toggleSelectMessage,
-  deleteSelectedMessages
+  deleteSelectedMessages,
+  addReaction,
+  removeReaction,
+  updateMessage
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

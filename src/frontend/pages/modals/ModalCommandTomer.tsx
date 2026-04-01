@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Input } from '@/frontend/ui/Input';
 import { Switch } from '@/frontend/ui/Switch';
 import dayjs from 'dayjs';
@@ -8,6 +8,8 @@ interface CommandLike {
   title?: string;
   text?: string;
 }
+
+type SelectMode = 'range' | 'pick';
 
 const ModalCommandTimer = ({
   open,
@@ -24,14 +26,110 @@ const ModalCommandTimer = ({
   commands: CommandLike[];
   onConfirm: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
-  const { time, startIndex, endIndex, loop = false } = values || {};
+  const {
+    time,
+    startIndex,
+    endIndex,
+    loop = false,
+    selectedIndices = [] as number[],
+    selectMode: savedMode
+  } = values || {};
+  const [cmdSearch, setCmdSearch] = useState('');
+  const [mode, setMode] = useState<SelectMode>(savedMode || 'range');
 
   // 频率合法性判断
   const timeInvalid = !time || Number.isNaN(time) || time < 1 || time > 12;
 
-  // 下一个执行顺序预览（取 5 条，循环）
+  // 搜索过滤（仅影响显示，不影响已选中的）
+  const filteredCommands = useMemo(() => {
+    if (!Array.isArray(commands)) return [];
+    if (!cmdSearch.trim()) return commands.map((c, i) => ({ cmd: c, idx: i }));
+    const q = cmdSearch.toLowerCase();
+    return commands
+      .map((c, i) => ({ cmd: c, idx: i }))
+      .filter(
+        ({ cmd }) =>
+          (cmd.title || '').toLowerCase().includes(q) ||
+          (cmd.text || '').toLowerCase().includes(q)
+      );
+  }, [commands, cmdSearch]);
+
+  const toggleIndex = (idx: number) => {
+    onChange((prev: any) => {
+      const current: number[] = Array.isArray(prev?.selectedIndices)
+        ? prev.selectedIndices
+        : [];
+      const next = current.includes(idx)
+        ? current.filter((i: number) => i !== idx)
+        : [...current, idx].sort((a, b) => a - b);
+      return { ...prev, selectedIndices: next };
+    });
+  };
+
+  const selectAll = () => {
+    const allIndices = filteredCommands.map(c => c.idx);
+    onChange((prev: any) => {
+      const current: number[] = Array.isArray(prev?.selectedIndices)
+        ? prev.selectedIndices
+        : [];
+      const merged = Array.from(new Set([...current, ...allIndices])).sort(
+        (a, b) => a - b
+      );
+      return { ...prev, selectedIndices: merged };
+    });
+  };
+
+  const deselectAll = () => {
+    const visibleIndices = new Set(filteredCommands.map(c => c.idx));
+    onChange((prev: any) => {
+      const current: number[] = Array.isArray(prev?.selectedIndices)
+        ? prev.selectedIndices
+        : [];
+      return {
+        ...prev,
+        selectedIndices: current.filter(i => !visibleIndices.has(i))
+      };
+    });
+  };
+
+  // 执行顺序预览 (根据模式)
   const nextSequence = useMemo(() => {
     if (!Array.isArray(commands) || commands.length === 0) return [];
+    if (mode === 'pick') {
+      if (selectedIndices.length === 0) return [];
+      const sorted = [...selectedIndices]
+        .filter((i: number) => i >= 0 && i < commands.length)
+        .sort((a: number, b: number) => a - b);
+      return sorted.slice(0, 5).map((idx: number) => ({
+        idx,
+        name: commands[idx]?.title || commands[idx]?.text || `指令#${idx + 1}`
+      }));
+    } else {
+      const realStart = Math.max(
+        0,
+        Math.min(startIndex ?? 0, commands.length - 1)
+      );
+      const realEnd =
+        typeof endIndex === 'number'
+          ? Math.max(realStart, Math.min(endIndex, commands.length - 1))
+          : commands.length - 1;
+      const arr: { idx: number; name: string }[] = [];
+      for (let i = 0; i < Math.min(5, realEnd - realStart + 1); i++) {
+        const realIndex = realStart + i;
+        const cmd = commands[realIndex];
+        arr.push({
+          idx: realIndex,
+          name: cmd?.title || cmd?.text || `指令#${realIndex + 1}`
+        });
+      }
+      return arr;
+    }
+  }, [commands, mode, selectedIndices, startIndex, endIndex]);
+
+  /** 当前模式下选中的指令数 */
+  const selectedCount = useMemo(() => {
+    if (mode === 'pick') return selectedIndices.length;
+    if (!commands.length) return 0;
     const realStart = Math.max(
       0,
       Math.min(startIndex ?? 0, commands.length - 1)
@@ -40,22 +138,12 @@ const ModalCommandTimer = ({
       typeof endIndex === 'number'
         ? Math.max(realStart, Math.min(endIndex, commands.length - 1))
         : commands.length - 1;
-    const arr: { idx: number; name: string }[] = [];
-    for (let i = 0; i < Math.min(5, realEnd - realStart + 1); i++) {
-      const realIndex = realStart + i;
-      const cmd = commands[realIndex];
-      arr.push({
-        idx: realIndex,
-        name: cmd?.title || cmd?.text || `指令#${realIndex + 1}`
-      });
-    }
-    return arr;
-  }, [commands, startIndex, endIndex]);
+    return realEnd - realStart + 1;
+  }, [mode, selectedIndices, startIndex, endIndex, commands.length]);
 
-  // 预计下一次执行时间（只是展示，创建后真实计时由业务控制）
+  // 预计下一次执行时间
   const nextExecPreview = useMemo(() => {
     if (timeInvalid) return '—';
-    // 取当前时间 + time 秒
     const date = dayjs().add(time, 'second');
     return date.format('HH:mm:ss');
   }, [time, timeInvalid]);
@@ -77,7 +165,7 @@ const ModalCommandTimer = ({
       description={'自动按顺序循环发送指令'}
       okText="🚀 启动任务"
       onOk={onConfirm}
-      width={340}
+      width={380}
     >
       <form className="flex flex-col animate-fadeIn">
         {/* 配置区 */}
@@ -141,67 +229,161 @@ const ModalCommandTimer = ({
             </p>
           </div>
 
-          {/* 起始指令 */}
+          {/* 选择指令 - 模式切换 */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--editor-foreground)]">
-              起始指令 🎯
-            </label>
-            <select
-              value={startIndex}
-              onChange={e => {
-                const selectedIndex = Number(e.target.value);
-                onChange((prev: any) => ({
-                  ...prev,
-                  startIndex: selectedIndex,
-                  commandName:
-                    commands[selectedIndex]?.title ||
-                    commands[selectedIndex]?.text
-                }));
-              }}
-              className="w-full px-3 py-2 rounded-md bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)] border border-[var(--input-border)]"
-            >
-              {Array.isArray(commands) &&
-                commands.map((item, index) => (
-                  <option key={index} value={index}>
-                    {index + 1}. {item.title || item.text || '未命名'}
-                  </option>
-                ))}
-            </select>
-          </div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-[var(--editor-foreground)]">
+                选择指令 🎯
+              </label>
+              <div className="flex gap-1 text-[11px]">
+                <button
+                  type="button"
+                  className={`px-2 py-0.5 rounded ${mode === 'range' ? 'bg-[var(--button-background)] text-[var(--button-foreground)]' : 'bg-[var(--activityBar-background)] hover:opacity-80'}`}
+                  onClick={() => {
+                    setMode('range');
+                    onChange((prev: any) => ({ ...prev, selectMode: 'range' }));
+                  }}
+                >
+                  区间模式
+                </button>
+                <button
+                  type="button"
+                  className={`px-2 py-0.5 rounded ${mode === 'pick' ? 'bg-[var(--button-background)] text-[var(--button-foreground)]' : 'bg-[var(--activityBar-background)] hover:opacity-80'}`}
+                  onClick={() => {
+                    setMode('pick');
+                    onChange((prev: any) => ({ ...prev, selectMode: 'pick' }));
+                  }}
+                >
+                  手选模式
+                </button>
+              </div>
+            </div>
 
-          {/* 结束指令 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--editor-foreground)]">
-              结束指令 🛑 (含)
-            </label>
-            <select
-              value={
-                typeof endIndex === 'number'
-                  ? Math.min(endIndex, commands.length - 1)
-                  : commands.length - 1
-              }
-              onChange={e => {
-                const idx = Number(e.target.value);
-                onChange((prev: any) => ({ ...prev, endIndex: idx }));
-              }}
-              className="w-full px-3 py-2 rounded-md bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)] border border-[var(--input-border)]"
-            >
-              {Array.isArray(commands) &&
-                commands.map((item, index) => (
-                  <option key={index} value={index}>
-                    {index + 1}. {item.title || item.text || '未命名'}
-                  </option>
-                ))}
-            </select>
-            <p className="text-[11px] text-[var(--descriptionForeground)]">
-              不选默认为最后一条指令；区间：#{(startIndex ?? 0) + 1} - #
-              {(typeof endIndex === 'number'
-                ? Math.max(
-                    startIndex ?? 0,
-                    Math.min(endIndex, commands.length - 1)
-                  )
-                : commands.length - 1) + 1}
-            </p>
+            {mode === 'range' ? (
+              <>
+                {/* 区间模式：起始/结束指令 */}
+                <div className="space-y-2">
+                  <label className="block text-xs text-[var(--descriptionForeground)]">
+                    起始指令
+                  </label>
+                  <select
+                    value={startIndex ?? 0}
+                    onChange={e => {
+                      const idx = Number(e.target.value);
+                      onChange((prev: any) => ({ ...prev, startIndex: idx }));
+                    }}
+                    className="w-full px-3 py-1.5 rounded-md text-xs bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)] border border-[var(--input-border)]"
+                  >
+                    {Array.isArray(commands) &&
+                      commands.map((item, index) => (
+                        <option key={index} value={index}>
+                          {index + 1}. {item.title || item.text || '未命名'}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs text-[var(--descriptionForeground)]">
+                    结束指令（含）
+                  </label>
+                  <select
+                    value={
+                      typeof endIndex === 'number'
+                        ? Math.min(endIndex, commands.length - 1)
+                        : commands.length - 1
+                    }
+                    onChange={e => {
+                      const idx = Number(e.target.value);
+                      onChange((prev: any) => ({ ...prev, endIndex: idx }));
+                    }}
+                    className="w-full px-3 py-1.5 rounded-md text-xs bg-[var(--input-background)] hover:bg-[var(--activityBar-background)] text-[var(--input-foreground)] border border-[var(--input-border)]"
+                  >
+                    {Array.isArray(commands) &&
+                      commands.map((item, index) => (
+                        <option key={index} value={index}>
+                          {index + 1}. {item.title || item.text || '未命名'}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-[11px] text-[var(--descriptionForeground)]">
+                    区间：#{(startIndex ?? 0) + 1} - #
+                    {(typeof endIndex === 'number'
+                      ? Math.max(
+                          startIndex ?? 0,
+                          Math.min(endIndex, commands.length - 1)
+                        )
+                      : commands.length - 1) + 1}
+                    （共 {selectedCount} 条）
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 手选模式：复选框列表 */}
+                <div className="flex items-center justify-between text-xs text-[var(--descriptionForeground)]">
+                  <span>
+                    已选 {selectedIndices.length}/{commands.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="flex-1 px-2 py-1 rounded-md text-xs bg-[var(--input-background)] text-[var(--input-foreground)] border border-[var(--input-border)] outline-none"
+                    placeholder="搜索指令..."
+                    value={cmdSearch}
+                    onChange={e => setCmdSearch(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded bg-[var(--activityBar-background)] hover:opacity-80"
+                    onClick={selectAll}
+                  >
+                    全选
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded bg-[var(--activityBar-background)] hover:opacity-80"
+                    onClick={deselectAll}
+                  >
+                    清除
+                  </button>
+                </div>
+                <div className="max-h-36 overflow-y-auto scrollbar rounded-md border border-[var(--input-border)] bg-[var(--input-background)]">
+                  {filteredCommands.length > 0 ? (
+                    filteredCommands.map(({ cmd, idx }) => {
+                      const checked = selectedIndices.includes(idx);
+                      return (
+                        <label
+                          key={idx}
+                          className={`flex items-center gap-2 px-2 py-1.5 cursor-pointer text-xs hover:bg-[var(--activityBar-background)] border-b border-[var(--panel-border)] last:border-b-0 ${
+                            checked ? 'bg-blue-500/10' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleIndex(idx)}
+                            className="accent-[var(--button-background)]"
+                          />
+                          <span className="text-[var(--descriptionForeground)] w-5 text-right">
+                            #{idx + 1}
+                          </span>
+                          <span className="flex-1 truncate text-[var(--editor-foreground)]">
+                            {cmd.title || cmd.text || '未命名'}
+                          </span>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <div className="text-xs text-center text-[var(--descriptionForeground)] py-3">
+                      {cmdSearch ? '未找到匹配指令' : '暂无指令'}
+                    </div>
+                  )}
+                </div>
+                {selectedIndices.length === 0 && (
+                  <p className="text-xs text-yellow-500">请至少选择一条指令</p>
+                )}
+              </>
+            )}
           </div>
 
           {/* 预览区 */}
@@ -225,31 +407,17 @@ const ModalCommandTimer = ({
               </li>
               <li>
                 <span className="mr-1">🧮</span>
-                区间指令数：
+                已选指令数：
                 <span className="font-medium">
-                  {(() => {
-                    if (!commands.length) return 0;
-                    const realStart = Math.max(
-                      0,
-                      Math.min(startIndex ?? 0, commands.length - 1)
-                    );
-                    const realEnd =
-                      typeof endIndex === 'number'
-                        ? Math.max(
-                            realStart,
-                            Math.min(endIndex, commands.length - 1)
-                          )
-                        : commands.length - 1;
-                    return realEnd - realStart + 1;
-                  })()}
-                  /{commands.length}
+                  {selectedCount}/{commands.length}
                 </span>
               </li>
               <li>
                 <span className="mr-1">🔁</span>
                 模式：
                 <span className="font-medium">
-                  {loop === false ? '单轮执行' : '循环执行'}
+                  {loop === false ? '单轮执行' : '循环执行'}（
+                  {mode === 'range' ? '区间' : '手选'}）
                 </span>
               </li>
               <li>
@@ -275,13 +443,18 @@ const ModalCommandTimer = ({
                           : 'bg-[var(--editor-inactiveSelection)]'
                       }`}
                     >
-                      {i === 0 ? '➡️ 当前起点' : `→ 第 ${i + 1} 步`} ：#
+                      {i === 0 ? '➡️ 首条' : `→ 第 ${i + 1} 步`} ：#
                       {c.idx + 1} {c.name}
                     </div>
                   ))}
+                  {selectedCount > 5 && (
+                    <div className="text-[11px] opacity-70">
+                      ...还有 {selectedCount - 5} 条
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="text-[11px] opacity-70">无可预览内容</div>
+                <div className="text-[11px] opacity-70">请先选择指令</div>
               )}
             </div>
           </div>

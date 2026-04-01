@@ -2,6 +2,7 @@ import { memo, useState, useMemo, useCallback, useEffect } from 'react';
 import { Command } from '@/frontend/typing';
 import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
 import FieldTimeOutlined from '@ant-design/icons/FieldTimeOutlined';
+import SearchOutlined from '@ant-design/icons/SearchOutlined';
 import CommandItem from './CommandItem';
 import PopoverBox from '../ui/PopoverBox';
 
@@ -23,11 +24,24 @@ const CommandList = ({
   open
 }: Props) => {
   const [page, setPage] = useState(0);
+  const [search, setSearch] = useState('');
+
+  // 过滤指令
+  const filtered = useMemo(() => {
+    if (!search.trim()) return commands;
+    const q = search.toLowerCase();
+    return commands.filter(
+      c =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.text.toLowerCase().includes(q)
+    );
+  }, [commands, search]);
 
   // 当 commands 变化时重置页码，避免越界
   const totalPages = useMemo(
-    () => Math.ceil(commands.length / PAGE_SIZE) || 1,
-    [commands.length]
+    () => Math.ceil(filtered.length / PAGE_SIZE) || 1,
+    [filtered.length]
   );
   // 修正页码（放入 effect 避免 render 期间 setState）
   useEffect(() => {
@@ -36,11 +50,16 @@ const CommandList = ({
     }
   }, [page, totalPages]);
 
+  // 搜索变化时重置页码
+  useEffect(() => {
+    setPage(0);
+  }, [search]);
+
   const pageCommands = useMemo(() => {
-    if (commands.length <= PAGE_SIZE) return commands;
+    if (filtered.length <= PAGE_SIZE) return filtered;
     const start = page * PAGE_SIZE;
-    return commands.slice(start, start + PAGE_SIZE);
-  }, [commands, page]);
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const handlePrev = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,7 +78,7 @@ const CommandList = ({
 
   if (!open || commands.length === 0) return null;
 
-  const hasPagination = commands.length > PAGE_SIZE;
+  const hasPagination = filtered.length > PAGE_SIZE;
   const listMaxHeightClass = hasPagination ? 'max-h-40' : 'max-h-48'; // 40=>10rem, 48=>12rem
 
   return (
@@ -68,7 +87,9 @@ const CommandList = ({
         <div className="flex items-center gap-1">
           <span>指令列表</span>
           {commands.length > PAGE_SIZE && (
-            <span className="opacity-70">{commands.length}</span>
+            <span className="opacity-70">
+              {filtered.length}/{commands.length}
+            </span>
           )}
         </div>
         <div className="flex gap-2 items-center">
@@ -93,6 +114,18 @@ const CommandList = ({
             <CloseCircleOutlined />
           </div>
         </div>
+      </div>
+      {/* 搜索框 */}
+      <div className="flex items-center gap-1 px-1 py-0.5 border-b border-[var(--dropdown-border)]">
+        <SearchOutlined className="text-[var(--descriptionForeground)] text-xs" />
+        <input
+          className="flex-1 bg-transparent outline-none text-xs text-[var(--foreground)]"
+          placeholder="搜索指令..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
+        />
       </div>
       <div className="shadow-inner rounded-md py-1 flex flex-col">
         <div
@@ -128,6 +161,11 @@ const CommandList = ({
             >
               下一页
             </button>
+          </div>
+        )}
+        {filtered.length === 0 && search.trim() && (
+          <div className="text-xs text-center text-[var(--descriptionForeground)] py-2">
+            未找到匹配指令
           </div>
         )}
       </div>

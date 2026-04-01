@@ -3,6 +3,8 @@ import { DataEnums } from 'alemonjs';
 import type { Descendant } from 'slate';
 import * as _ from 'lodash-es';
 import { Channel, Command, MessageItem } from '@/frontend/typing';
+import SearchOutlined from '@ant-design/icons/SearchOutlined';
+import CloseOutlined from '@ant-design/icons/CloseOutlined';
 import {
   makeSelectMessagesByType,
   makeSelectUserList,
@@ -22,22 +24,40 @@ const ModalStopAllConfirm = lazy(
 const ModalTaskDeleteConfirm = lazy(
   () => import('@/frontend/pages/modals/ModalTaskDeleteConfirm')
 );
+const ModalEditMessage = lazy(
+  () => import('@/frontend/pages/modals/ModalEditMessage')
+);
+const ModalReactionList = lazy(
+  () => import('@/frontend/pages/modals/ModalReactionList')
+);
+const PayloadInspector = lazy(
+  () => import('@/frontend/component/PayloadInspector')
+);
+const EventLogPanel = lazy(() => import('@/frontend/pages/EventLog/App'));
 import TimerManager from '@/frontend/pages/common/TimerManager';
 import { useAppDispatch, useAppSelector } from '@/frontend/store';
 import {
   sendGroupFormat,
-  sendPrivateFormat
+  sendPrivateFormat,
+  sendInteraction,
+  sendMessageDelete,
+  sendMessageUpdate,
+  sendReactionAdd,
+  sendReactionRemove
 } from '@/frontend/store/sendMessage';
 import {
   clearGroupMessages,
   clearPrivateMessages,
   deleteGroupMessage,
-  deletePrivateMessage
+  deletePrivateMessage,
+  addReaction,
+  removeReaction
 } from '@/frontend/store/slices/chatSlice';
 import { setCurrentChannel } from '@/frontend/store/slices/channelSlice';
 import useCommandTimer from '@/frontend/hook/useCommandTimer';
 import { parseMessageSmart } from '../../core/asyncParse';
 import { serializeToDataEnums } from '@/frontend/component/slate/serialize';
+import { useInputHistory } from '@/frontend/hook/useInputHistory';
 import UserInfo from '../common/UserInfo';
 import SidebarCommandList from '@/frontend/component/SidebarCommandList';
 import InputBox from '../common/InputBox';
@@ -45,7 +65,8 @@ import TimerManagerTip from '../common/TimerManagerTip';
 import {
   setSelectMode,
   toggleSelectMessage,
-  deleteSelectedMessages
+  deleteSelectedMessages,
+  updateMessage
 } from '@/frontend/store/slices/chatSlice';
 import { setCurrentUser } from '@/frontend/store/slices/userSlice';
 
@@ -139,8 +160,75 @@ export default function ChatWindow({
   );
 
   const [value, onInput] = useState('');
+  const inputHistory = useInputHistory();
   const getSlateValueRef = useRef<() => Descendant[]>(() => []);
   const [slateNodes, setSlateNodes] = useState<Descendant[] | null>(null);
+  const [editingItem, setEditingItem] = useState<MessageItem | null>(null);
+  const [reactionMessage, setReactionMessage] = useState<MessageItem | null>(
+    null
+  );
+  const [reactionEmoji, setReactionEmoji] = useState<string | null>(null);
+  const [inspectingItem, setInspectingItem] = useState<MessageItem | null>(
+    null
+  );
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  /** 按关键词过滤消息 */
+  const filteredMessage = useMemo(() => {
+    if (!searchOpen || !searchQuery.trim()) return message;
+    const q = searchQuery.toLowerCase();
+    return message.filter(m =>
+      m.data.some(d => {
+        if (
+          d.type === 'Text' ||
+          d.type === 'Markdown' ||
+          d.type === 'MarkdownOriginal'
+        ) {
+          return String(d.value).toLowerCase().includes(q);
+        }
+        if (d.type === 'Mention') {
+          return String((d as any).options?.UserName || d.value)
+            .toLowerCase()
+            .includes(q);
+        }
+        return false;
+      })
+    );
+  }, [message, searchOpen, searchQuery]);
+
+  const onEdit = useCallback((item: MessageItem) => {
+    setEditingItem(item);
+  }, []);
+
+  const onEditConfirm = useCallback(
+    (newContent: DataEnums[]) => {
+      if (!editingItem) return;
+      const scope = pageType === 'public' ? 'public' : 'private';
+      const msgId = editingItem.MessageId || editingItem.CreateAt.toString();
+
+      dispatch(
+        updateMessage({
+          scope,
+          CreateAt: editingItem.CreateAt,
+          UserId: editingItem.UserId,
+          data: newContent
+        })
+      );
+
+      dispatch(
+        sendMessageUpdate({
+          scope,
+          messageId: msgId,
+          messageCreateAt: editingItem.CreateAt,
+          content: newContent
+        })
+      );
+
+      setEditingItem(null);
+    },
+    [editingItem, pageType, dispatch]
+  );
 
   const handleCommand = useMemo(
     () =>
@@ -285,18 +373,125 @@ export default function ChatWindow({
               }
             }}
           />
+          <div
+            className="cursor-pointer px-2 flex items-center"
+            onClick={() => {
+              setSearchOpen(v => {
+                if (v) setSearchQuery('');
+                return !v;
+              });
+            }}
+            title="搜索消息"
+          >
+            <SearchOutlined />
+          </div>
         </MessageHeader>
+        {/* 搜索栏 */}
+        {searchOpen && (
+          <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--panel-border)] bg-[var(--editorWidget-background)]">
+            <SearchOutlined className="text-[var(--descriptionForeground)]" />
+            <input
+              autoFocus
+              className="flex-1 bg-transparent outline-none text-sm text-[var(--foreground)]"
+              placeholder="搜索消息..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  setSearchOpen(false);
+                  setSearchQuery('');
+                }
+              }}
+            />
+            {searchQuery && (
+              <span className="text-xs text-[var(--descriptionForeground)]">
+                {filteredMessage.length}/{message.length}
+              </span>
+            )}
+            <CloseOutlined
+              className="cursor-pointer text-[var(--descriptionForeground)] hover:text-[var(--foreground)]"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchQuery('');
+              }}
+            />
+          </div>
+        )}
         {
           // 消息窗口
         }
         <MessageWindow
-          message={message}
+          message={filteredMessage}
           onDelete={onDelete}
           onSend={onSend}
           onInput={onInput}
           UserId={user?.UserId || ''}
           selectMode={selectMode}
           selectedKeys={selectedKeys}
+          onButtonClick={(item, buttonId, buttonData) => {
+            dispatch(
+              sendInteraction({
+                scope: pageType === 'public' ? 'public' : 'private',
+                buttonId,
+                buttonData,
+                messageId: item.MessageId || item.CreateAt.toString()
+              })
+            );
+          }}
+          onReact={(item, emoji) => {
+            const userId = user?.UserId || '';
+            const msgId = item.MessageId || item.CreateAt.toString();
+            const scope = pageType === 'public' ? 'group' : 'private';
+            const existing = item.reactions?.find(r => r.emoji === emoji);
+            if (existing && existing.users.includes(userId)) {
+              dispatch(
+                removeReaction({
+                  scope,
+                  CreateAt: item.CreateAt,
+                  UserId: item.UserId,
+                  emoji,
+                  reactUserId: userId
+                })
+              );
+              dispatch(
+                sendReactionRemove({
+                  scope: pageType === 'public' ? 'public' : 'private',
+                  emoji,
+                  messageId: msgId
+                })
+              );
+            } else {
+              dispatch(
+                addReaction({
+                  scope,
+                  CreateAt: item.CreateAt,
+                  UserId: item.UserId,
+                  emoji,
+                  reactUserId: userId
+                })
+              );
+              dispatch(
+                sendReactionAdd({
+                  scope: pageType === 'public' ? 'public' : 'private',
+                  emoji,
+                  messageId: msgId
+                })
+              );
+            }
+          }}
+          onRecall={item => {
+            if (pageType === 'public') dispatch(deleteGroupMessage(item));
+            else dispatch(deletePrivateMessage(item));
+            dispatch(
+              sendMessageDelete({
+                scope: pageType === 'public' ? 'public' : 'private',
+                messageId: item.MessageId || item.CreateAt.toString(),
+                messageCreateAt: item.CreateAt
+              })
+            );
+          }}
+          onEdit={onEdit}
+          onInspect={item => setInspectingItem(item)}
           onConfirmDelete={item => {
             // 右键确认删除，不进入选择模式
             if (pageType === 'public') dispatch(deleteGroupMessage(item));
@@ -317,9 +512,13 @@ export default function ChatWindow({
           commands={commands}
           userList={userList}
           channelList={channels}
+          pageType={pageType}
           onInput={onInput}
+          onSendFormat={onSendFormat}
           onSlateChange={setSlateNodes}
           getSlateValue={getSlateValueRef}
+          onHistoryPrev={inputHistory.prev}
+          onHistoryNext={inputHistory.next}
           onSend={() => {
             // 优先使用 Slate 文档直接序列化 (无需正则解析)
             const nodes = getSlateValueRef.current();
@@ -329,13 +528,21 @@ export default function ChatWindow({
                 content.length > 0 &&
                 content.some(c => c.type !== 'Text' || c.value.trim())
               ) {
+                // 记录发送历史
+                const textParts = content
+                  .filter(c => c.type === 'Text')
+                  .map(c => c.value);
+                if (textParts.length > 0) inputHistory.push(textParts.join(''));
                 onSendFormat(content);
                 onInput('');
+                inputHistory.reset();
               }
             } else if (value.trim()) {
               // 回退: 纯文本走旧路径
+              inputHistory.push(value);
               onSend(value);
               onInput('');
+              inputHistory.reset();
             }
           }}
           onClear={onClear}
@@ -352,6 +559,10 @@ export default function ChatWindow({
           selectMode={selectMode}
           selectedCount={selectedKeys.length}
         />
+        {/* 事件日志面板 - 输入框下方可折叠 */}
+        <Suspense fallback={null}>
+          <EventLogPanel />
+        </Suspense>
       </section>
       {/* 桌面端任务管理（移动端隐藏） */}
       <section className="w-56 hidden sm:flex flex-col bg-[var(--editorWidget-background)] border-l border-[--panel-border] p-2 gradient-border">
@@ -388,6 +599,24 @@ export default function ChatWindow({
           onCancel={() => setTaskToDelete(null)}
           onConfirm={deleteSingleTask}
         />
+        <ModalEditMessage
+          open={!!editingItem}
+          item={editingItem}
+          onCancel={() => setEditingItem(null)}
+          onConfirm={onEditConfirm}
+        />
+        <ModalReactionList
+          open={!!reactionMessage && !!reactionEmoji}
+          message={reactionMessage}
+          reaction={
+            reactionMessage?.reactions?.find(r => r.emoji === reactionEmoji) ||
+            null
+          }
+          onClose={() => {
+            setReactionMessage(null);
+            setReactionEmoji(null);
+          }}
+        />
         <ModalCommandTimer
           commands={commands}
           values={timerConfig}
@@ -395,6 +624,11 @@ export default function ChatWindow({
           open={open}
           onCancel={() => setOpen(false)}
           onConfirm={e => onSubmitTimer(e, { channel: channel, user: user })}
+        />
+        <PayloadInspector
+          item={inspectingItem}
+          open={!!inspectingItem}
+          onClose={() => setInspectingItem(null)}
         />
       </Suspense>
     </div>

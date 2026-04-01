@@ -9,6 +9,9 @@ type MessageRowProps = {
   onDelete: (item: MessageItem) => void;
   onSend: (value: string) => void;
   onInput: (value: string) => void;
+  onButtonClick?: (buttonId: string, buttonData: string) => void;
+  onReact?: (emoji: string) => void;
+  currentUserId?: string;
   selectMode?: boolean;
   selected?: boolean;
 };
@@ -21,6 +24,9 @@ const MessageRow = memo(
     onDelete,
     onSend,
     onInput,
+    onButtonClick,
+    onReact,
+    currentUserId,
     selectMode = false,
     selected = false
   }: MessageRowProps) => {
@@ -69,6 +75,10 @@ const MessageRow = memo(
           data={item.data}
           onSend={onSend}
           onInput={onInput}
+          onButtonClick={onButtonClick}
+          reactions={item.reactions}
+          onReact={onReact}
+          currentUserId={currentUserId}
           createAt={item.CreateAt}
         />
       </div>
@@ -78,6 +88,7 @@ const MessageRow = memo(
     // 仅当消息创建时间不同才重新渲染
     const isSame =
       prevProps.item.CreateAt === nextProps.item.CreateAt &&
+      prevProps.item.reactions === nextProps.item.reactions &&
       prevProps.selected === nextProps.selected &&
       prevProps.selectMode === nextProps.selectMode;
     // isOwnMessage 变化了也要重新渲染

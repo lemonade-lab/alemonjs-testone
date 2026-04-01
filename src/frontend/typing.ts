@@ -28,12 +28,38 @@ export const Users: User[] = [];
 
 export type PageTab = 'connect' | 'group' | 'private';
 
+export type Reaction = {
+  emoji: string;
+  users: string[]; // UserIds
+};
+
 export type MessageItem = {
   UserId: string;
   UserName: string;
   UserAvatar: string;
   CreateAt: number;
+  MessageId?: string;
   data: DataEnums[];
+  reactions?: Reaction[];
+  UpdateAt?: number; // 编辑时间
+  IsEdited?: boolean; // 是否被编辑过
+};
+
+export type SystemNotification = {
+  id: string;
+  type: 'notice' | 'member_change' | 'channel_change' | 'guild_change';
+  CreateAt: number;
+  title: string;
+  content: string;
+  data?: any;
+};
+
+export type MemberChangeEvent = {
+  type: 'add' | 'remove' | 'ban' | 'unban' | 'update';
+  UserId: string;
+  UserName?: string;
+  GuildId?: string;
+  Reason?: string;
 };
 
 export type Command = {

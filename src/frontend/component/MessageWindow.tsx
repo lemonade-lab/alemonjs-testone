@@ -12,6 +12,15 @@ type MessageWindowProps = {
   onDelete: (item: MessageItem) => void; // 左键删除或在选择模式下切换选择
   onSend: (value: string) => void;
   onInput: (value: string) => void;
+  onButtonClick?: (
+    item: MessageItem,
+    buttonId: string,
+    buttonData: string
+  ) => void;
+  onReact?: (item: MessageItem, emoji: string) => void;
+  onRecall?: (item: MessageItem) => void;
+  onEdit?: (item: MessageItem) => void;
+  onInspect?: (item: MessageItem) => void;
   UserId: string;
   selectMode?: boolean;
   selectedKeys?: string[];
@@ -27,6 +36,11 @@ function MessageWindow({
   onDelete,
   onSend = () => {},
   onInput = () => {},
+  onButtonClick,
+  onReact,
+  onRecall,
+  onEdit,
+  onInspect,
   UserId,
   selectMode = false,
   selectedKeys = [],
@@ -137,6 +151,9 @@ function MessageWindow({
               onDelete={handleDelete}
               onSend={handleSend}
               onInput={handleInput}
+              onButtonClick={(bid, bdata) => onButtonClick?.(item, bid, bdata)}
+              onReact={emoji => onReact?.(item, emoji)}
+              currentUserId={UserId}
             />
           )}
         />
@@ -175,6 +192,11 @@ function MessageWindow({
                 onDelete={handleDelete}
                 onSend={handleSend}
                 onInput={handleInput}
+                onButtonClick={(bid, bdata) =>
+                  onButtonClick?.(item, bid, bdata)
+                }
+                onReact={emoji => onReact?.(item, emoji)}
+                currentUserId={UserId}
                 selectMode={selectMode}
                 selected={selected}
               />
@@ -223,6 +245,28 @@ function MessageWindow({
               >
                 删除
               </Button>
+              {onRecall && (
+                <Button
+                  className="text-xs"
+                  onClick={() => {
+                    onRecall(menu.item!);
+                    closeMenu();
+                  }}
+                >
+                  撤回
+                </Button>
+              )}
+              {onEdit && UserId === menu.item?.UserId && (
+                <Button
+                  className="text-xs"
+                  onClick={() => {
+                    onEdit(menu.item!);
+                    closeMenu();
+                  }}
+                >
+                  编辑
+                </Button>
+              )}
               <Button
                 className="text-xs"
                 onClick={() => {
@@ -232,6 +276,17 @@ function MessageWindow({
               >
                 多选
               </Button>
+              {onInspect && (
+                <Button
+                  className="text-xs"
+                  onClick={() => {
+                    onInspect(menu.item!);
+                    closeMenu();
+                  }}
+                >
+                  查看结构
+                </Button>
+              )}
             </>
           )}
         </div>

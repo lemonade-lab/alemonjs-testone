@@ -10,6 +10,8 @@ import TagOutlined from '@ant-design/icons/TagOutlined';
 import TagsOutlined from '@ant-design/icons/TagsOutlined';
 import BulbOutlined from '@ant-design/icons/BulbOutlined';
 import ThunderboltOutlined from '@ant-design/icons/ThunderboltOutlined';
+import QuestionCircleOutlined from '@ant-design/icons/QuestionCircleOutlined';
+import SettingOutlined from '@ant-design/icons/SettingOutlined';
 import { Tooltip } from '@/frontend/ui/Tooltip';
 
 interface NavActionsProps {
@@ -103,6 +105,22 @@ export const NavActions = ({
       <Tooltip placement={autoTooltipPlacement} content={vt('连接')} portal>
         <div className="cursor-pointer" onClick={() => onGotab('connect')}>
           <SyncOutlined />
+        </div>
+      </Tooltip>
+      <Tooltip placement={autoTooltipPlacement} content={vt('配置')} portal>
+        <div
+          className="cursor-pointer"
+          onClick={() => dispatch(setTab('config'))}
+        >
+          <SettingOutlined />
+        </div>
+      </Tooltip>
+      <Tooltip placement={autoTooltipPlacement} content={vt('帮助')} portal>
+        <div
+          className="cursor-pointer"
+          onClick={() => dispatch(setTab('help'))}
+        >
+          <QuestionCircleOutlined />
         </div>
       </Tooltip>
     </div>

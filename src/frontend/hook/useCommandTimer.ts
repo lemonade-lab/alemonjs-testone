@@ -7,6 +7,7 @@ export interface TimerConfig {
   time: number;
   startIndex: number;
   endIndex?: number; // 结束指令索引（包含）。缺省表示最后一条
+  selectedIndices?: number[]; // 选中的指令索引列表（优先于 startIndex/endIndex）
   user?: User;
   channel?: Channel;
   loop?: boolean; // 是否循环执行（默认 true）
@@ -112,21 +113,14 @@ export default function useCommandTimer(
   const createCommandCallback = useCallback(
     (
       taskId: string,
-      startIndex: number,
-      endIndex: number | undefined,
+      indices: number[],
       loop: boolean,
       snapshotUser?: User,
       snapshotChannel?: Channel
     ) => {
-      // 规范化区间
-      const realStart = Math.max(0, Math.min(startIndex, commands.length - 1));
-      let realEnd =
-        typeof endIndex === 'number'
-          ? Math.max(realStart, Math.min(endIndex, commands.length - 1))
-          : commands.length - 1;
-      const segmentLength = realEnd - realStart + 1;
-      commandIndexRef.current[taskId] = realStart; // 原始递增指针（不回绕）
-      const execCountRef: { current: number } = { current: 0 }; // 已执行次数
+      const segmentLength = indices.length;
+      commandIndexRef.current[taskId] = 0; // 在 indices 数组中的位移
+      const execCountRef: { current: number } = { current: 0 };
 
       return () => {
         if (!status) {
@@ -134,7 +128,7 @@ export default function useCommandTimer(
           timerManager.stopTask(taskId);
           return;
         }
-        if (commands.length === 0 || segmentLength <= 0) {
+        if (segmentLength <= 0) {
           Message.warning('没有可用的指令，任务终止');
           timerManager.stopTask(taskId);
           return;
@@ -146,10 +140,8 @@ export default function useCommandTimer(
           return;
         }
 
-        const raw = commandIndexRef.current[taskId];
-        const offset = (raw - realStart) % segmentLength; // 在区间内偏移
-        const currentIndex =
-          realStart + (offset < 0 ? offset + segmentLength : offset);
+        const pointer = commandIndexRef.current[taskId] % segmentLength;
+        const currentIndex = indices[pointer];
         const command = commands[currentIndex];
 
         if (command) {
@@ -162,7 +154,7 @@ export default function useCommandTimer(
             console.error('执行指令出错:', err);
             Message.error('执行指令时发生错误');
           }
-          commandIndexRef.current[taskId] = raw + 1; // 推进原始指针
+          commandIndexRef.current[taskId] = pointer + 1;
           execCountRef.current++;
           if (!loop && execCountRef.current >= segmentLength) {
             Message.info('已完成全部指令，即将自动停止');
@@ -212,36 +204,45 @@ export default function useCommandTimer(
         }
       }
 
-      let startIndex = Math.floor(timerConfig.startIndex ?? 0);
-      if (startIndex < 0) {
-        startIndex = 0;
-      }
-      if (startIndex >= commands.length) {
-        Message.warning('起始索引超出范围，已重置为 0');
-        startIndex = 0;
+      // 构建实际执行的指令索引列表
+      let indices: number[];
+      if (
+        timerConfig.selectedIndices &&
+        timerConfig.selectedIndices.length > 0
+      ) {
+        // 使用手动选择的指令
+        indices = timerConfig.selectedIndices
+          .filter(i => i >= 0 && i < commands.length)
+          .sort((a, b) => a - b);
+      } else {
+        // 回退到 startIndex/endIndex 区间
+        let startIndex = Math.floor(timerConfig.startIndex ?? 0);
+        if (startIndex < 0) startIndex = 0;
+        if (startIndex >= commands.length) startIndex = 0;
+        let endIndex =
+          typeof timerConfig.endIndex === 'number'
+            ? Math.floor(timerConfig.endIndex)
+            : commands.length - 1;
+        if (endIndex < startIndex) endIndex = startIndex;
+        if (endIndex >= commands.length) endIndex = commands.length - 1;
+        indices = [];
+        for (let i = startIndex; i <= endIndex; i++) indices.push(i);
       }
 
-      let endIndex =
-        typeof timerConfig.endIndex === 'number'
-          ? Math.floor(timerConfig.endIndex)
-          : commands.length - 1;
-      if (endIndex < startIndex) {
-        endIndex = startIndex;
-      }
-      if (endIndex >= commands.length) {
-        endIndex = commands.length - 1;
+      if (indices.length === 0) {
+        Message.error('请至少选择一条指令');
+        return;
       }
 
       try {
         const snapshotUser = mergedUser;
         const snapshotChannel = mergedChannel;
 
-        // 先创建占位任务（空 callback）
         const uniqueName = `指令循环发送#${Date.now()}`;
         const taskId = timerManager.createTask({
           name: uniqueName,
           interval: timerConfig.time * 1000,
-          callback: () => {}, // 占位，稍后 update
+          callback: () => {},
           metadata: {
             loopTask: true,
             loop: timerConfig.loop !== false,
@@ -250,22 +251,19 @@ export default function useCommandTimer(
             channelName: snapshotChannel?.ChannelName,
             userId: snapshotUser?.UserId,
             userName: snapshotUser?.UserName,
-            startIndex,
-            endIndex,
+            selectedIndices: indices,
             frequency: timerConfig.time,
             totalCommands: commands.length,
-            segmentCommands: endIndex - startIndex + 1,
+            segmentCommands: indices.length,
             createdAt: new Date().toISOString()
           }
         });
 
-        // 更新真正的 callback
         timerManager.updateTask(taskId, {
           callback: createCommandCallback(
             taskId,
-            startIndex,
-            endIndex,
-            timerConfig.loop !== false, // 默认为循环
+            indices,
+            timerConfig.loop !== false,
             snapshotUser,
             snapshotChannel
           )
@@ -277,24 +275,19 @@ export default function useCommandTimer(
             ...prev,
             user: snapshotUser,
             channel: snapshotChannel,
-            startIndex,
-            endIndex,
+            selectedIndices: indices,
             loop: timerConfig.loop !== false
           }));
           onStart();
-          const startCommand = commands[startIndex];
+          const firstCmd = commands[indices[0]];
           Message.success(
             [
               '新的循环任务已启动 ✅',
               `任务: ${uniqueName}`,
               `频率: ${timerConfig.time}s`,
-              `起始索引: ${startIndex}`,
-              `结束索引: ${endIndex}`,
+              `已选指令: ${indices.length} 条`,
               `模式: ${timerConfig.loop === false ? '单轮执行' : '循环执行'}`,
-              `起始指令: ${
-                startCommand?.title || startCommand?.text || '未知'
-              }`,
-              `区间指令数: ${endIndex - startIndex + 1} / 总数 ${commands.length}`
+              `首条指令: ${firstCmd?.title || firstCmd?.text || '未知'}`
             ].join('\n')
           );
         } else {
