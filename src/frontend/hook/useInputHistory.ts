@@ -38,10 +38,14 @@ export function useInputHistory() {
 
   const push = useCallback((text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     const history = historyRef.current;
     // 避免连续重复
-    if (history.length > 0 && history[history.length - 1] === trimmed) return;
+    if (history.length > 0 && history[history.length - 1] === trimmed) {
+      return;
+    }
     history.push(trimmed);
     if (history.length > MAX_HISTORY) {
       history.splice(0, history.length - MAX_HISTORY);
@@ -52,7 +56,9 @@ export function useInputHistory() {
 
   const prev = useCallback((currentText?: string): string | null => {
     const history = historyRef.current;
-    if (history.length === 0) return null;
+    if (history.length === 0) {
+      return null;
+    }
     if (indexRef.current === -1) {
       // 进入历史浏览，保存草稿
       draftRef.current = currentText ?? '';
@@ -67,7 +73,9 @@ export function useInputHistory() {
 
   const next = useCallback((): string | null => {
     const history = historyRef.current;
-    if (indexRef.current === -1) return null;
+    if (indexRef.current === -1) {
+      return null;
+    }
     if (indexRef.current < history.length - 1) {
       indexRef.current += 1;
       return history[indexRef.current];

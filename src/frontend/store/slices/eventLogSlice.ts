@@ -42,7 +42,9 @@ const eventLogSlice = createSlice({
   initialState,
   reducers: {
     addLogEntry(state, action: PayloadAction<Omit<EventLogEntry, 'id'>>) {
-      if (!state.enabled) return;
+      if (!state.enabled) {
+        return;
+      }
       const entry: EventLogEntry = {
         ...action.payload,
         id: genLogId()

@@ -84,7 +84,9 @@ function trackSend(eventType: string) {
   if (pendingSendTimestamps.size > MAX_PENDING) {
     // 清理最老的
     const first = pendingSendTimestamps.keys().next().value;
-    if (first) pendingSendTimestamps.delete(first);
+    if (first) {
+      pendingSendTimestamps.delete(first);
+    }
   }
 }
 
@@ -96,9 +98,13 @@ function getLatency(recvEventType: string): number | undefined {
     'message.update': 'message.update'
   };
   const sendKey = LATENCY_MAP[recvEventType];
-  if (!sendKey) return undefined;
+  if (!sendKey) {
+    return undefined;
+  }
   const sendTime = pendingSendTimestamps.get(sendKey);
-  if (!sendTime) return undefined;
+  if (!sendTime) {
+    return undefined;
+  }
   pendingSendTimestamps.delete(sendKey);
   return Date.now() - sendTime;
 }

@@ -196,8 +196,12 @@ const chatSlice = createSlice({
       const msg = messages.find(
         m => m.CreateAt === CreateAt && m.UserId === UserId
       );
-      if (!msg) return;
-      if (!msg.reactions) msg.reactions = [];
+      if (!msg) {
+        return;
+      }
+      if (!msg.reactions) {
+        msg.reactions = [];
+      }
       const existing = msg.reactions.find(r => r.emoji === emoji);
       if (existing) {
         if (!existing.users.includes(reactUserId)) {
@@ -226,7 +230,9 @@ const chatSlice = createSlice({
       const msg = messages.find(
         m => m.CreateAt === CreateAt && m.UserId === UserId
       );
-      if (!msg || !msg.reactions) return;
+      if (!msg || !msg.reactions) {
+        return;
+      }
       const existing = msg.reactions.find(r => r.emoji === emoji);
       if (existing) {
         existing.users = existing.users.filter(u => u !== reactUserId);
@@ -253,7 +259,9 @@ const chatSlice = createSlice({
       const msg = messages.find(
         m => m.CreateAt === CreateAt && m.UserId === UserId
       );
-      if (!msg) return;
+      if (!msg) {
+        return;
+      }
       msg.data = data;
       msg.UpdateAt = Date.now();
       msg.IsEdited = true;

@@ -136,7 +136,9 @@ export const sendInteraction = createAsyncThunk<
     const state = getState();
     const currentUser = state.users.current;
     const channel = state.channels.current;
-    if (!currentUser) return;
+    if (!currentUser) {
+      return;
+    }
 
     const UserKey = useUserHashKey({
       Platform,
@@ -196,7 +198,9 @@ export const sendMessageDelete = createAsyncThunk<
     const state = getState();
     const currentUser = state.users.current;
     const channel = state.channels.current;
-    if (!currentUser) return;
+    if (!currentUser) {
+      return;
+    }
 
     const UserKey = useUserHashKey({
       Platform,
@@ -248,7 +252,9 @@ export const sendReactionAdd = createAsyncThunk<
   const state = getState();
   const currentUser = state.users.current;
   const channel = state.channels.current;
-  if (!currentUser) return;
+  if (!currentUser) {
+    return;
+  }
 
   const UserKey = useUserHashKey({
     Platform,
@@ -299,7 +305,9 @@ export const sendReactionRemove = createAsyncThunk<
     const state = getState();
     const currentUser = state.users.current;
     const channel = state.channels.current;
-    if (!currentUser) return;
+    if (!currentUser) {
+      return;
+    }
 
     const UserKey = useUserHashKey({
       Platform,
@@ -352,7 +360,9 @@ export const sendMessageUpdate = createAsyncThunk<
     const state = getState();
     const currentUser = state.users.current;
     const channel = state.channels.current;
-    if (!currentUser) return;
+    if (!currentUser) {
+      return;
+    }
 
     const UserKey = useUserHashKey({
       Platform,

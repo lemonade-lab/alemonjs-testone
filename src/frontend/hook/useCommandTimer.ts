@@ -217,16 +217,26 @@ export default function useCommandTimer(
       } else {
         // 回退到 startIndex/endIndex 区间
         let startIndex = Math.floor(timerConfig.startIndex ?? 0);
-        if (startIndex < 0) startIndex = 0;
-        if (startIndex >= commands.length) startIndex = 0;
+        if (startIndex < 0) {
+          startIndex = 0;
+        }
+        if (startIndex >= commands.length) {
+          startIndex = 0;
+        }
         let endIndex =
           typeof timerConfig.endIndex === 'number'
             ? Math.floor(timerConfig.endIndex)
             : commands.length - 1;
-        if (endIndex < startIndex) endIndex = startIndex;
-        if (endIndex >= commands.length) endIndex = commands.length - 1;
+        if (endIndex < startIndex) {
+          endIndex = startIndex;
+        }
+        if (endIndex >= commands.length) {
+          endIndex = commands.length - 1;
+        }
         indices = [];
-        for (let i = startIndex; i <= endIndex; i++) indices.push(i);
+        for (let i = startIndex; i <= endIndex; i++) {
+          indices.push(i);
+        }
       }
 
       if (indices.length === 0) {
