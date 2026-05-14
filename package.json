@@ -3,7 +3,7 @@
   "displayName": "ALemonTestOne",
   "publisher": "lemonadex",
   "description": "阿柠檬沙盒环境",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "scripts": {
     "dev": "vite",
     "bundle": "tsc && NODE_ENV='development' vite build",
@@ -39,7 +39,7 @@
     "@typescript-eslint/parser": "^8.17.0",
     "@vitejs/plugin-react": "^4.2.1",
     "@vscode/test-cli": "^0.0.10",
-    "alemonjs": "^2.1.0-alpha.2",
+    "alemonjs": "^2.1.77",
     "animate.css": "^4.1.1",
     "antd": "^5.26.7",
     "autoprefixer": "^10.4.19",

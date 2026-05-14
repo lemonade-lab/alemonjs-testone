@@ -113,7 +113,9 @@ const MARKDOWN_RENDERERS: Record<string, (mdItem: any) => React.ReactNode> = {
     </>
   ),
   'MD.blockquote': md => (
-    <blockquote>{safeString(md.value).slice(0, 500)}</blockquote>
+    <blockquote className="message-bubble__blockquote">
+      {safeString(md.value).slice(0, 500)}
+    </blockquote>
   ),
   'MD.bold': md => (
     <strong className="px-1 py-0.5 rounded-md shadow-inner">
@@ -408,11 +410,11 @@ const renderButtonGroup = (
     const groups = item?.value;
     if (!Array.isArray(groups)) return <div>按钮数据错误</div>;
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex w-full flex-col items-start gap-3">
         {groups.slice(0, 20).map((group: any, gi: number) => {
           const bts = Array.isArray(group?.value) ? group.value : [];
           return (
-            <div key={gi} className="flex flex-wrap gap-2">
+            <div key={gi} className="flex w-full flex-wrap items-start gap-2">
               {bts.slice(0, 30).map((bt: any, bi: number) => {
                 const meta =
                   typeof bt?.value === 'string'
@@ -427,6 +429,7 @@ const renderButtonGroup = (
                 return (
                   <Button
                     key={bi}
+                    className="max-w-full whitespace-normal break-words text-left"
                     onClick={e => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -460,7 +463,7 @@ const renderMarkdown = (
   try {
     const markdown = Array.isArray(item?.value) ? item.value : [];
     return (
-      <div className="mb-2">
+      <div className="mb-2 w-full">
         {markdown.slice(0, 200).map((md: any, i: number) => {
           if (!md || typeof md !== 'object') return null;
           const type = safeString(md.type);
@@ -473,8 +476,10 @@ const renderMarkdown = (
             );
             const autoEnter = !!md?.options?.autoEnter;
             return (
-              <Button
+              <button
+                type="button"
                 key={`mdbtn-${i}`}
+                className="inline whitespace-normal break-words rounded-none border-0 bg-transparent px-0 py-0 align-baseline font-medium leading-inherit text-[var(--button-background)] underline-offset-2 hover:underline"
                 onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -483,7 +488,7 @@ const renderMarkdown = (
                 }}
               >
                 {label}
-              </Button>
+              </button>
             );
           }
 
@@ -533,11 +538,11 @@ const renderButtonGroupWithInteraction = (
     const groups = item?.value;
     if (!Array.isArray(groups)) return <div>按钮数据错误</div>;
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex w-full flex-col items-start gap-3">
         {groups.slice(0, 20).map((group: any, gi: number) => {
           const bts = Array.isArray(group?.value) ? group.value : [];
           return (
-            <div key={gi} className="flex flex-wrap gap-2">
+            <div key={gi} className="flex w-full flex-wrap items-start gap-2">
               {bts.slice(0, 30).map((bt: any, bi: number) => {
                 const meta =
                   typeof bt?.value === 'string'
@@ -556,6 +561,7 @@ const renderButtonGroupWithInteraction = (
                 return (
                   <Button
                     key={bi}
+                    className="max-w-full whitespace-normal break-words text-left"
                     onClick={e => {
                       e.stopPropagation();
                       e.preventDefault();

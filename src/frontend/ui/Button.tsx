@@ -10,7 +10,7 @@ export function Button(
     <button
       type="button"
       className={classNames(
-        'px-2 py-1 rounded-md flex items-center justify-center ',
+        'px-2 py-1 rounded-md inline-flex items-center justify-center',
         'bg-[var(--button-background)]',
         'hover:bg-[var(--button-hoverBackground)]',
         'border border-[var(--button-border)]',
